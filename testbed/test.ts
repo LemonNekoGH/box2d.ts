@@ -21,10 +21,11 @@
 // SOFTWARE.
 
 import * as b2 from "@box2d";
-import { Settings } from "./settings.js";
-import { g_debugDraw } from "./draw.js";
+import {Settings} from "./settings.js";
+import {g_debugDraw} from "./draw.js";
 // #if B2_ENABLE_PARTICLE
-import { FullScreenUI } from "./fullscreen_ui.js";
+import {FullScreenUI} from "./fullscreen_ui.js";
+import {b2DrawFlags} from "../build/common/b2_draw";
 // #endif
 
 export const DRAW_STRING_NEW_LINE: number = 16;
@@ -300,18 +301,7 @@ export class Test extends b2.ContactListener {
       this.m_textLine += DRAW_STRING_NEW_LINE;
     }
 
-    let flags = b2.DrawFlags.e_none;
-    if (settings.m_drawShapes) { flags |= b2.DrawFlags.e_shapeBit;        }
-    // #if B2_ENABLE_PARTICLE
-    if (settings.m_drawParticles) { flags |= b2.DrawFlags.e_particleBit; }
-    // #endif
-    if (settings.m_drawJoints) { flags |= b2.DrawFlags.e_jointBit;        }
-    if (settings.m_drawAABBs ) { flags |= b2.DrawFlags.e_aabbBit;         }
-    if (settings.m_drawCOMs  ) { flags |= b2.DrawFlags.e_centerOfMassBit; }
-    // #if B2_ENABLE_CONTROLLER
-    if (settings.m_drawControllers  ) { flags |= b2.DrawFlags.e_controllerBit; }
-    // #endif
-    g_debugDraw.SetFlags(flags);
+    g_debugDraw.SetFlags(b2DrawFlags.e_shapeBit);
 
     this.m_world.SetAllowSleeping(settings.m_enableSleep);
     this.m_world.SetWarmStarting(settings.m_enableWarmStarting);
@@ -333,30 +323,6 @@ export class Test extends b2.ContactListener {
 
     if (timeStep > 0) {
       ++this.m_stepCount;
-    }
-
-    if (settings.m_drawStats) {
-      const bodyCount = this.m_world.GetBodyCount();
-      const contactCount = this.m_world.GetContactCount();
-      const jointCount = this.m_world.GetJointCount();
-      g_debugDraw.DrawString(5, this.m_textLine, "bodies/contacts/joints = " + bodyCount + "/" + contactCount + "/" + jointCount);
-      this.m_textLine += DRAW_STRING_NEW_LINE;
-
-      // #if B2_ENABLE_PARTICLE
-      const particleCount = this.m_particleSystem.GetParticleCount();
-      const groupCount = this.m_particleSystem.GetParticleGroupCount();
-      const pairCount = this.m_particleSystem.GetPairCount();
-      const triadCount = this.m_particleSystem.GetTriadCount();
-      g_debugDraw.DrawString(5, this.m_textLine, "particles/groups/pairs/triads = " + particleCount + "/" + groupCount + "/" + pairCount + "/" + triadCount);
-      this.m_textLine += DRAW_STRING_NEW_LINE;
-      // #endif
-
-      const proxyCount = this.m_world.GetProxyCount();
-      const height = this.m_world.GetTreeHeight();
-      const balance = this.m_world.GetTreeBalance();
-      const quality = this.m_world.GetTreeQuality();
-      g_debugDraw.DrawString(5, this.m_textLine, "proxies/height/balance/quality = " + proxyCount + "/" + height + "/" + balance + "/" + quality.toFixed(2));
-      this.m_textLine += DRAW_STRING_NEW_LINE;
     }
 
     // Track maximum profile times
@@ -387,40 +353,6 @@ export class Test extends b2.ContactListener {
 
       c.SetRGB(0.8, 0.8, 0.8);
       g_debugDraw.DrawSegment(this.m_mouseWorld, this.m_bombSpawnPoint, c);
-    }
-
-    if (settings.m_drawContactPoints) {
-      const k_impulseScale: number = 0.1;
-      const k_axisScale: number = 0.3;
-
-      for (let i: number = 0; i < this.m_pointCount; ++i) {
-        const point = this.m_points[i];
-
-        if (point.state === b2.PointState.b2_addState) {
-          // Add
-          g_debugDraw.DrawPoint(point.position, 10, new b2.Color(0.3, 0.95, 0.3));
-        } else if (point.state === b2.PointState.b2_persistState) {
-          // Persist
-          g_debugDraw.DrawPoint(point.position, 5, new b2.Color(0.3, 0.3, 0.95));
-        }
-
-        if (settings.m_drawContactNormals) {
-          const p1 = point.position;
-          const p2: b2.Vec2 = b2.Vec2.AddVV(p1, b2.Vec2.MulSV(k_axisScale, point.normal, b2.Vec2.s_t0), new b2.Vec2());
-          g_debugDraw.DrawSegment(p1, p2, new b2.Color(0.9, 0.9, 0.9));
-        } else if (settings.m_drawContactImpulse) {
-          const p1 = point.position;
-          const p2: b2.Vec2 = b2.Vec2.AddVMulSV(p1, k_impulseScale * point.normalImpulse, point.normal, new b2.Vec2());
-          g_debugDraw.DrawSegment(p1, p2, new b2.Color(0.9, 0.9, 0.3));
-        }
-
-        if (settings.m_drawFrictionImpulse) {
-          const tangent: b2.Vec2 = b2.Vec2.CrossVOne(point.normal, new b2.Vec2());
-          const p1 = point.position;
-          const p2: b2.Vec2 = b2.Vec2.AddVMulSV(p1, k_impulseScale * point.tangentImpulse, tangent, new b2.Vec2());
-          g_debugDraw.DrawSegment(p1, p2, new b2.Color(0.9, 0.9, 0.3));
-        }
-      }
     }
   }
 

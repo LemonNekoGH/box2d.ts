@@ -36,19 +36,6 @@ export class Settings {
   public m_particleIterations: number = b2.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
   // #endif
   public m_drawShapes: boolean = true;
-  // #if B2_ENABLE_PARTICLE
-  public m_drawParticles: boolean = true;
-  // #endif
-  public m_drawJoints: boolean = true;
-  public m_drawAABBs: boolean = false;
-  public m_drawContactPoints: boolean = false;
-  public m_drawContactNormals: boolean = false;
-  public m_drawContactImpulse: boolean = false;
-  public m_drawFrictionImpulse: boolean = false;
-  public m_drawCOMs: boolean = false;
-  public m_drawControllers: boolean = true;
-  public m_drawStats: boolean = false;
-  public m_drawProfile: boolean = false;
   public m_enableWarmStarting: boolean = true;
   public m_enableContinuous: boolean = true;
   public m_enableSubStepping: boolean = false;
@@ -73,21 +60,6 @@ export class Settings {
     this.m_particleIterations = b2.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
     // #endif
     this.m_drawShapes = true;
-    // #if B2_ENABLE_PARTICLE
-    this.m_drawParticles = true;
-    // #endif
-    this.m_drawJoints = true;
-    this.m_drawAABBs = false;
-    this.m_drawContactPoints = false;
-    this.m_drawContactNormals = false;
-    this.m_drawContactImpulse = false;
-    this.m_drawFrictionImpulse = false;
-    this.m_drawCOMs = false;
-    // #if B2_ENABLE_CONTROLLER
-    this.m_drawControllers = true;
-    // #endif
-    this.m_drawStats = false;
-    this.m_drawProfile = false;
     this.m_enableWarmStarting = true;
     this.m_enableContinuous = true;
     this.m_enableSubStepping = false;

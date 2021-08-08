@@ -42,19 +42,6 @@
           this.m_particleIterations = b2__namespace.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
           // #endif
           this.m_drawShapes = true;
-          // #if B2_ENABLE_PARTICLE
-          this.m_drawParticles = true;
-          // #endif
-          this.m_drawJoints = true;
-          this.m_drawAABBs = false;
-          this.m_drawContactPoints = false;
-          this.m_drawContactNormals = false;
-          this.m_drawContactImpulse = false;
-          this.m_drawFrictionImpulse = false;
-          this.m_drawCOMs = false;
-          this.m_drawControllers = true;
-          this.m_drawStats = false;
-          this.m_drawProfile = false;
           this.m_enableWarmStarting = true;
           this.m_enableContinuous = true;
           this.m_enableSubStepping = false;
@@ -79,21 +66,6 @@
           this.m_particleIterations = b2__namespace.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
           // #endif
           this.m_drawShapes = true;
-          // #if B2_ENABLE_PARTICLE
-          this.m_drawParticles = true;
-          // #endif
-          this.m_drawJoints = true;
-          this.m_drawAABBs = false;
-          this.m_drawContactPoints = false;
-          this.m_drawContactNormals = false;
-          this.m_drawContactImpulse = false;
-          this.m_drawFrictionImpulse = false;
-          this.m_drawCOMs = false;
-          // #if B2_ENABLE_CONTROLLER
-          this.m_drawControllers = true;
-          // #endif
-          this.m_drawStats = false;
-          this.m_drawProfile = false;
           this.m_enableWarmStarting = true;
           this.m_enableContinuous = true;
           this.m_enableSubStepping = false;
@@ -320,6 +292,40 @@
   }
   // #endif
 
+  /*
+  * Copyright (c) 2011 Erin Catto http://box2d.org
+  *
+  * This software is provided 'as-is', without any express or implied
+  * warranty.  In no event will the authors be held liable for any damages
+  * arising from the use of this software.
+  * Permission is granted to anyone to use this software for any purpose,
+  * including commercial applications, and to alter it and redistribute it
+  * freely, subject to the following restrictions:
+  * 1. The origin of this software must not be misrepresented; you must not
+  * claim that you wrote the original software. If you use this software
+  * in a product, an acknowledgment in the product documentation would be
+  * appreciated but is not required.
+  * 2. Altered source versions must be plainly marked as such, and must not be
+  * misrepresented as being the original software.
+  * 3. This notice may not be removed or altered from any source distribution.
+  */
+  var b2DrawFlags;
+  (function (b2DrawFlags) {
+      b2DrawFlags[b2DrawFlags["e_none"] = 0] = "e_none";
+      b2DrawFlags[b2DrawFlags["e_shapeBit"] = 1] = "e_shapeBit";
+      b2DrawFlags[b2DrawFlags["e_jointBit"] = 2] = "e_jointBit";
+      b2DrawFlags[b2DrawFlags["e_aabbBit"] = 4] = "e_aabbBit";
+      b2DrawFlags[b2DrawFlags["e_pairBit"] = 8] = "e_pairBit";
+      b2DrawFlags[b2DrawFlags["e_centerOfMassBit"] = 16] = "e_centerOfMassBit";
+      // #if B2_ENABLE_PARTICLE
+      b2DrawFlags[b2DrawFlags["e_particleBit"] = 32] = "e_particleBit";
+      // #endif
+      // #if B2_ENABLE_CONTROLLER
+      b2DrawFlags[b2DrawFlags["e_controllerBit"] = 64] = "e_controllerBit";
+      // #endif
+      b2DrawFlags[b2DrawFlags["e_all"] = 63] = "e_all";
+  })(b2DrawFlags || (b2DrawFlags = {}));
+
   // MIT License
   // #endif
   const DRAW_STRING_NEW_LINE = 16;
@@ -533,30 +539,7 @@
               g_debugDraw.DrawString(5, this.m_textLine, "****PAUSED****");
               this.m_textLine += DRAW_STRING_NEW_LINE;
           }
-          let flags = b2__namespace.DrawFlags.e_none;
-          if (settings.m_drawShapes) {
-              flags |= b2__namespace.DrawFlags.e_shapeBit;
-          }
-          // #if B2_ENABLE_PARTICLE
-          if (settings.m_drawParticles) {
-              flags |= b2__namespace.DrawFlags.e_particleBit;
-          }
-          // #endif
-          if (settings.m_drawJoints) {
-              flags |= b2__namespace.DrawFlags.e_jointBit;
-          }
-          if (settings.m_drawAABBs) {
-              flags |= b2__namespace.DrawFlags.e_aabbBit;
-          }
-          if (settings.m_drawCOMs) {
-              flags |= b2__namespace.DrawFlags.e_centerOfMassBit;
-          }
-          // #if B2_ENABLE_CONTROLLER
-          if (settings.m_drawControllers) {
-              flags |= b2__namespace.DrawFlags.e_controllerBit;
-          }
-          // #endif
-          g_debugDraw.SetFlags(flags);
+          g_debugDraw.SetFlags(b2DrawFlags.e_shapeBit);
           this.m_world.SetAllowSleeping(settings.m_enableSleep);
           this.m_world.SetWarmStarting(settings.m_enableWarmStarting);
           this.m_world.SetContinuousPhysics(settings.m_enableContinuous);
@@ -573,27 +556,6 @@
           this.m_world.DebugDraw();
           if (timeStep > 0) {
               ++this.m_stepCount;
-          }
-          if (settings.m_drawStats) {
-              const bodyCount = this.m_world.GetBodyCount();
-              const contactCount = this.m_world.GetContactCount();
-              const jointCount = this.m_world.GetJointCount();
-              g_debugDraw.DrawString(5, this.m_textLine, "bodies/contacts/joints = " + bodyCount + "/" + contactCount + "/" + jointCount);
-              this.m_textLine += DRAW_STRING_NEW_LINE;
-              // #if B2_ENABLE_PARTICLE
-              const particleCount = this.m_particleSystem.GetParticleCount();
-              const groupCount = this.m_particleSystem.GetParticleGroupCount();
-              const pairCount = this.m_particleSystem.GetPairCount();
-              const triadCount = this.m_particleSystem.GetTriadCount();
-              g_debugDraw.DrawString(5, this.m_textLine, "particles/groups/pairs/triads = " + particleCount + "/" + groupCount + "/" + pairCount + "/" + triadCount);
-              this.m_textLine += DRAW_STRING_NEW_LINE;
-              // #endif
-              const proxyCount = this.m_world.GetProxyCount();
-              const height = this.m_world.GetTreeHeight();
-              const balance = this.m_world.GetTreeBalance();
-              const quality = this.m_world.GetTreeQuality();
-              g_debugDraw.DrawString(5, this.m_textLine, "proxies/height/balance/quality = " + proxyCount + "/" + height + "/" + balance + "/" + quality.toFixed(2));
-              this.m_textLine += DRAW_STRING_NEW_LINE;
           }
           // Track maximum profile times
           {
@@ -620,37 +582,6 @@
               g_debugDraw.DrawPoint(this.m_bombSpawnPoint, 4, c);
               c.SetRGB(0.8, 0.8, 0.8);
               g_debugDraw.DrawSegment(this.m_mouseWorld, this.m_bombSpawnPoint, c);
-          }
-          if (settings.m_drawContactPoints) {
-              const k_impulseScale = 0.1;
-              const k_axisScale = 0.3;
-              for (let i = 0; i < this.m_pointCount; ++i) {
-                  const point = this.m_points[i];
-                  if (point.state === b2__namespace.PointState.b2_addState) {
-                      // Add
-                      g_debugDraw.DrawPoint(point.position, 10, new b2__namespace.Color(0.3, 0.95, 0.3));
-                  }
-                  else if (point.state === b2__namespace.PointState.b2_persistState) {
-                      // Persist
-                      g_debugDraw.DrawPoint(point.position, 5, new b2__namespace.Color(0.3, 0.3, 0.95));
-                  }
-                  if (settings.m_drawContactNormals) {
-                      const p1 = point.position;
-                      const p2 = b2__namespace.Vec2.AddVV(p1, b2__namespace.Vec2.MulSV(k_axisScale, point.normal, b2__namespace.Vec2.s_t0), new b2__namespace.Vec2());
-                      g_debugDraw.DrawSegment(p1, p2, new b2__namespace.Color(0.9, 0.9, 0.9));
-                  }
-                  else if (settings.m_drawContactImpulse) {
-                      const p1 = point.position;
-                      const p2 = b2__namespace.Vec2.AddVMulSV(p1, k_impulseScale * point.normalImpulse, point.normal, new b2__namespace.Vec2());
-                      g_debugDraw.DrawSegment(p1, p2, new b2__namespace.Color(0.9, 0.9, 0.3));
-                  }
-                  if (settings.m_drawFrictionImpulse) {
-                      const tangent = b2__namespace.Vec2.CrossVOne(point.normal, new b2__namespace.Vec2());
-                      const p1 = point.position;
-                      const p2 = b2__namespace.Vec2.AddVMulSV(p1, k_impulseScale * point.tangentImpulse, tangent, new b2__namespace.Vec2());
-                      g_debugDraw.DrawSegment(p1, p2, new b2__namespace.Color(0.9, 0.9, 0.3));
-                  }
-              }
           }
       }
       ShiftOrigin(newOrigin) {
