@@ -3,8 +3,8 @@ import typescript from "rollup-plugin-typescript2";
 export default {
   input: "src/index.ts",
   output: {
-    file: "./dist/box2d.gc.js",
-    name: "GCBox2D",
+    file: "./dist/box2d.umd.js",
+    name: "b2",
     format: "iife",
     sourcemap: true
   },

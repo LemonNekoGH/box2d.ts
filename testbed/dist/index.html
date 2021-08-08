@@ -7,10 +7,11 @@
     body { font-family: DroidSans; font-size: 15px; }
     </style>
     <script type="text/javascript" src="../../dist/box2d.umd.js"></script>
-    <script type="text/javascript" src="testbed.umd.js"></script>
+    <script type="text/javascript" src="dist/testbed.umd.js"></script>
     <script type="text/javascript">
+      let app
       window.addEventListener("load", function() {
-        var app = new testbed.Main();
+        app = new testbed.Main();
         function loop(time) {
           window.requestAnimationFrame(loop);
           app.SimulationLoop(time);
