@@ -249,50 +249,6 @@
   const g_camera = new Camera();
 
   /*
-   * Copyright (c) 2014 Google, Inc.
-   *
-   * This software is provided 'as-is', without any express or implied
-   * warranty.  In no event will the authors be held liable for any damages
-   * arising from the use of this software.
-   * Permission is granted to anyone to use this software for any purpose,
-   * including commercial applications, and to alter it and redistribute it
-   * freely, subject to the following restrictions:
-   * 1. The origin of this software must not be misrepresented; you must not
-   * claim that you wrote the original software. If you use this software
-   * in a product, an acknowledgment in the product documentation would be
-   * appreciated but is not required.
-   * 2. Altered source versions must be plainly marked as such, and must not be
-   * misrepresented as being the original software.
-   * 3. This notice may not be removed or altered from any source distribution.
-   */
-  // #if B2_ENABLE_PARTICLE
-  /**
-   * Handles drawing and selection of full screen UI.
-   */
-  class FullScreenUI {
-      constructor() {
-          /**
-           * Whether particle parameters are enabled.
-           */
-          this.m_particleParameterSelectionEnabled = false;
-          this.Reset();
-      }
-      /**
-       * Reset the UI to it's initial state.
-       */
-      Reset() {
-          this.m_particleParameterSelectionEnabled = false;
-      }
-      /**
-       * Enable / disable particle parameter selection.
-       */
-      SetParticleParameterSelectionEnabled(enable) {
-          this.m_particleParameterSelectionEnabled = enable;
-      }
-  }
-  // #endif
-
-  /*
   * Copyright (c) 2011 Erin Catto http://box2d.org
   *
   * This software is provided 'as-is', without any express or implied
@@ -327,7 +283,6 @@
   })(b2DrawFlags || (b2DrawFlags = {}));
 
   // MIT License
-  // #endif
   const DRAW_STRING_NEW_LINE = 16;
   function RandomFloat(lo = -1, hi = 1) {
       let r = Math.random();
@@ -357,7 +312,6 @@
   class Test extends b2__namespace.ContactListener {
       constructor() {
           super();
-          // #endif
           this.m_bomb = null;
           this.m_textLine = 30;
           this.m_mouseJoint = null;
@@ -366,38 +320,19 @@
           this.m_bombSpawnPoint = new b2__namespace.Vec2();
           this.m_bombSpawning = false;
           this.m_mouseWorld = new b2__namespace.Vec2();
-          // #if B2_ENABLE_PARTICLE
-          this.m_mouseTracing = false;
-          this.m_mouseTracerPosition = new b2__namespace.Vec2();
-          this.m_mouseTracerVelocity = new b2__namespace.Vec2();
-          // #endif
           this.m_stepCount = 0;
           this.m_maxProfile = new b2__namespace.Profile();
           this.m_totalProfile = new b2__namespace.Profile();
-          // #if B2_ENABLE_PARTICLE
-          const particleSystemDef = new b2__namespace.ParticleSystemDef();
-          // #endif
           const gravity = new b2__namespace.Vec2(0, -10);
           this.m_world = new b2__namespace.World(gravity);
-          // #if B2_ENABLE_PARTICLE
-          this.m_particleSystem = this.m_world.CreateParticleSystem(particleSystemDef);
-          // #endif
           this.m_bomb = null;
           this.m_textLine = 30;
           this.m_mouseJoint = null;
           this.m_world.SetContactListener(this);
           this.m_world.SetDebugDraw(g_debugDraw);
-          // #if B2_ENABLE_PARTICLE
-          this.m_particleSystem.SetGravityScale(0.4);
-          this.m_particleSystem.SetDensity(1.2);
-          // #endif
           const bodyDef = new b2__namespace.BodyDef();
           this.m_groundBody = this.m_world.CreateBody(bodyDef);
       }
-      JointDestroyed(joint) { }
-      // #if B2_ENABLE_PARTICLE
-      ParticleGroupDestroyed(group) { }
-      // #endif
       BeginContact(contact) { }
       EndContact(contact) { }
       PreSolve(contact, oldManifold) {
@@ -426,107 +361,6 @@
           }
       }
       PostSolve(contact, impulse) { }
-      MouseDown(p) {
-          this.m_mouseWorld.Copy(p);
-          // #if B2_ENABLE_PARTICLE
-          this.m_mouseTracing = true;
-          this.m_mouseTracerPosition.Copy(p);
-          this.m_mouseTracerVelocity.SetZero();
-          // #endif
-          if (this.m_mouseJoint !== null) {
-              this.m_world.DestroyJoint(this.m_mouseJoint);
-              this.m_mouseJoint = null;
-          }
-          let hit_fixture = null; // HACK: tsc doesn't detect calling callbacks
-          // Query the world for overlapping shapes.
-          this.m_world.QueryPointAABB(p, (fixture) => {
-              const body = fixture.GetBody();
-              if (body.GetType() === b2__namespace.BodyType.b2_dynamicBody) {
-                  const inside = fixture.TestPoint(p);
-                  if (inside) {
-                      hit_fixture = fixture;
-                      return false; // We are done, terminate the query.
-                  }
-              }
-              return true; // Continue the query.
-          });
-          if (hit_fixture) {
-              const frequencyHz = 5.0;
-              const dampingRatio = 0.7;
-              const body = hit_fixture.GetBody();
-              const jd = new b2__namespace.MouseJointDef();
-              jd.bodyA = this.m_groundBody;
-              jd.bodyB = body;
-              jd.target.Copy(p);
-              jd.maxForce = 1000 * body.GetMass();
-              b2__namespace.LinearStiffness(jd, frequencyHz, dampingRatio, jd.bodyA, jd.bodyB);
-              this.m_mouseJoint = this.m_world.CreateJoint(jd);
-              body.SetAwake(true);
-          }
-      }
-      SpawnBomb(worldPt) {
-          this.m_bombSpawnPoint.Copy(worldPt);
-          this.m_bombSpawning = true;
-      }
-      CompleteBombSpawn(p) {
-          if (!this.m_bombSpawning) {
-              return;
-          }
-          const multiplier = 30;
-          const vel = b2__namespace.Vec2.SubVV(this.m_bombSpawnPoint, p, new b2__namespace.Vec2());
-          vel.SelfMul(multiplier);
-          this.LaunchBombAt(this.m_bombSpawnPoint, vel);
-          this.m_bombSpawning = false;
-      }
-      ShiftMouseDown(p) {
-          this.m_mouseWorld.Copy(p);
-          if (this.m_mouseJoint !== null) {
-              return;
-          }
-          this.SpawnBomb(p);
-      }
-      MouseUp(p) {
-          // #if B2_ENABLE_PARTICLE
-          this.m_mouseTracing = false;
-          // #endif
-          if (this.m_mouseJoint) {
-              this.m_world.DestroyJoint(this.m_mouseJoint);
-              this.m_mouseJoint = null;
-          }
-          if (this.m_bombSpawning) {
-              this.CompleteBombSpawn(p);
-          }
-      }
-      MouseMove(p) {
-          this.m_mouseWorld.Copy(p);
-          if (this.m_mouseJoint) {
-              this.m_mouseJoint.SetTarget(p);
-          }
-      }
-      LaunchBombAt(position, velocity) {
-          if (this.m_bomb) {
-              this.m_world.DestroyBody(this.m_bomb);
-              this.m_bomb = null;
-          }
-          const bd = new b2__namespace.BodyDef();
-          bd.type = b2__namespace.BodyType.b2_dynamicBody;
-          bd.position.Copy(position);
-          bd.bullet = true;
-          this.m_bomb = this.m_world.CreateBody(bd);
-          this.m_bomb.SetLinearVelocity(velocity);
-          const circle = new b2__namespace.CircleShape();
-          circle.m_radius = 0.3;
-          const fd = new b2__namespace.FixtureDef();
-          fd.shape = circle;
-          fd.density = 20;
-          fd.restitution = 0;
-          // b2.Vec2 minV = position - b2.Vec2(0.3f,0.3f);
-          // b2.Vec2 maxV = position + b2.Vec2(0.3f,0.3f);
-          // b2.AABB aabb;
-          // aabb.lowerBound = minV;
-          // aabb.upperBound = maxV;
-          this.m_bomb.CreateFixture(fd);
-      }
       Step(settings) {
           let timeStep = settings.m_hertz > 0 ? 1 / settings.m_hertz : 0;
           if (settings.m_pause) {
@@ -544,15 +378,8 @@
           this.m_world.SetWarmStarting(settings.m_enableWarmStarting);
           this.m_world.SetContinuousPhysics(settings.m_enableContinuous);
           this.m_world.SetSubStepping(settings.m_enableSubStepping);
-          // #if B2_ENABLE_PARTICLE
-          this.m_particleSystem.SetStrictContactCheck(settings.m_strictContacts);
-          // #endif
           this.m_pointCount = 0;
-          // #if B2_ENABLE_PARTICLE
-          this.m_world.Step(timeStep, settings.m_velocityIterations, settings.m_positionIterations, settings.m_particleIterations);
-          // #else
-          // this.m_world.Step(timeStep, settings.velocityIterations, settings.positionIterations);
-          // #endif
+          this.m_world.Step(timeStep, settings.m_velocityIterations, settings.m_positionIterations);
           this.m_world.DebugDraw();
           if (timeStep > 0) {
               ++this.m_stepCount;
@@ -591,14 +418,10 @@
           return 1.0;
       }
   }
-  // #if B2_ENABLE_PARTICLE
-  Test.fullscreenUI = new FullScreenUI();
-  // #endif
   Test.k_maxContactPoints = 2048;
   Test.PreSolve_s_state1 = [ /*b2.maxManifoldPoints*/];
   Test.PreSolve_s_state2 = [ /*b2.maxManifoldPoints*/];
   Test.PreSolve_s_worldManifold = new b2__namespace.WorldManifold();
-  // #if B2_ENABLE_PARTICLE
   Test.k_ParticleColors = [
       new b2__namespace.Color().SetByteRGBA(0xff, 0x00, 0x00, 0xff),
       new b2__namespace.Color().SetByteRGBA(0x00, 0xff, 0x00, 0xff),
@@ -664,9 +487,6 @@
   class Main {
       constructor(time) {
           this.m_time_last = 0;
-          this.m_fps_time = 0;
-          this.m_fps_frames = 0;
-          this.m_fps = 0;
           this.m_settings = new Settings();
           this.m_shift = false;
           this.m_demo_time = 0;
@@ -722,9 +542,6 @@
           this.m_demo_time += time_elapsed;
       }
       LoadTest(restartTest = false) {
-          // #if B2_ENABLE_PARTICLE
-          Test.fullscreenUI.Reset();
-          // #endif
           this.m_demo_time = 0;
           // #endif
           this.m_test = g_testEntries[0].createFcn();
@@ -739,13 +556,6 @@
           if (time_elapsed > 1000) {
               time_elapsed = 1000;
           } // clamp
-          this.m_fps_time += time_elapsed;
-          this.m_fps_frames++;
-          if (this.m_fps_time >= 500) {
-              this.m_fps = (this.m_fps_frames * 1000) / this.m_fps_time;
-              this.m_fps_frames = 0;
-              this.m_fps_time = 0;
-          }
           if (time_elapsed > 0) {
               const ctx = this.m_ctx;
               // #endif
@@ -783,7 +593,6 @@
   exports.ContactPoint = ContactPoint;
   exports.DRAW_STRING_NEW_LINE = DRAW_STRING_NEW_LINE;
   exports.DebugDraw = DebugDraw;
-  exports.FullScreenUI = FullScreenUI;
   exports.Main = Main;
   exports.RandomFloat = RandomFloat;
   exports.Settings = Settings;

@@ -26,9 +26,6 @@ import { g_debugDraw, g_camera } from "./draw.js";
 
 export class Main {
   public m_time_last: number = 0;
-  public m_fps_time: number = 0;
-  public m_fps_frames: number = 0;
-  public m_fps: number = 0;
   public readonly m_settings: Settings = new Settings();
   public m_test?: Test;
   public m_shift: boolean = false;
@@ -102,9 +99,6 @@ export class Main {
   }
 
   public LoadTest(restartTest: boolean = false): void {
-    // #if B2_ENABLE_PARTICLE
-    Test.fullscreenUI.Reset();
-    // #endif
     this.m_demo_time = 0;
     // #endif
     this.m_test = g_testEntries[0].createFcn();
@@ -120,15 +114,6 @@ export class Main {
     this.m_time_last = time;
 
     if (time_elapsed > 1000) { time_elapsed = 1000; } // clamp
-
-    this.m_fps_time += time_elapsed;
-    this.m_fps_frames++;
-
-    if (this.m_fps_time >= 500) {
-      this.m_fps = (this.m_fps_frames * 1000) / this.m_fps_time;
-      this.m_fps_frames = 0;
-      this.m_fps_time = 0;
-    }
 
     if (time_elapsed > 0) {
       const ctx: CanvasRenderingContext2D | null = this.m_ctx;

@@ -23,10 +23,7 @@
 import * as b2 from "@box2d";
 import {Settings} from "./settings.js";
 import {g_debugDraw} from "./draw.js";
-// #if B2_ENABLE_PARTICLE
-import {FullScreenUI} from "./fullscreen_ui.js";
 import {b2DrawFlags} from "../build/common/b2_draw";
-// #endif
 
 export const DRAW_STRING_NEW_LINE: number = 16;
 
@@ -62,15 +59,9 @@ export class ContactPoint {
 }
 
 export class Test extends b2.ContactListener {
-  // #if B2_ENABLE_PARTICLE
-  public static readonly fullscreenUI = new FullScreenUI();
-  // #endif
   public static readonly k_maxContactPoints: number = 2048;
 
   public m_world: b2.World;
-  // #if B2_ENABLE_PARTICLE
-  public m_particleSystem: b2.ParticleSystem;
-  // #endif
   public m_bomb: b2.Body | null = null;
   public m_textLine: number = 30;
   public m_mouseJoint: b2.MouseJoint | null = null;
@@ -79,11 +70,6 @@ export class Test extends b2.ContactListener {
   public readonly m_bombSpawnPoint: b2.Vec2 = new b2.Vec2();
   public m_bombSpawning: boolean = false;
   public readonly m_mouseWorld: b2.Vec2 = new b2.Vec2();
-  // #if B2_ENABLE_PARTICLE
-  public m_mouseTracing: boolean = false;
-  public readonly m_mouseTracerPosition: b2.Vec2 = new b2.Vec2();
-  public readonly m_mouseTracerVelocity: b2.Vec2 = new b2.Vec2();
-  // #endif
   public m_stepCount: number = 0;
   public readonly m_maxProfile: b2.Profile = new b2.Profile();
   public readonly m_totalProfile: b2.Profile = new b2.Profile();
@@ -91,15 +77,8 @@ export class Test extends b2.ContactListener {
 
   constructor() {
     super();
-
-    // #if B2_ENABLE_PARTICLE
-    const particleSystemDef = new b2.ParticleSystemDef();
-    // #endif
     const gravity: b2.Vec2 = new b2.Vec2(0, -10);
     this.m_world = new b2.World(gravity);
-    // #if B2_ENABLE_PARTICLE
-    this.m_particleSystem = this.m_world.CreateParticleSystem(particleSystemDef);
-    // #endif
     this.m_bomb = null;
     this.m_textLine = 30;
     this.m_mouseJoint = null;
@@ -107,20 +86,9 @@ export class Test extends b2.ContactListener {
     this.m_world.SetContactListener(this);
     this.m_world.SetDebugDraw(g_debugDraw);
 
-    // #if B2_ENABLE_PARTICLE
-    this.m_particleSystem.SetGravityScale(0.4);
-    this.m_particleSystem.SetDensity(1.2);
-    // #endif
-
     const bodyDef: b2.BodyDef = new b2.BodyDef();
     this.m_groundBody = this.m_world.CreateBody(bodyDef);
   }
-
-  public JointDestroyed(joint: b2.Joint): void {}
-
-  // #if B2_ENABLE_PARTICLE
-  public ParticleGroupDestroyed(group: b2.ParticleGroup) {}
-  // #endif
 
   public BeginContact(contact: b2.Contact): void {}
 
@@ -162,131 +130,6 @@ export class Test extends b2.ContactListener {
 
   public PostSolve(contact: b2.Contact, impulse: b2.ContactImpulse): void {}
 
-  public MouseDown(p: b2.Vec2): void {
-    this.m_mouseWorld.Copy(p);
-    // #if B2_ENABLE_PARTICLE
-    this.m_mouseTracing = true;
-    this.m_mouseTracerPosition.Copy(p);
-    this.m_mouseTracerVelocity.SetZero();
-    // #endif
-
-    if (this.m_mouseJoint !== null) {
-      this.m_world.DestroyJoint(this.m_mouseJoint);
-      this.m_mouseJoint = null;
-    }
-
-    let hit_fixture: b2.Fixture | null | any = null; // HACK: tsc doesn't detect calling callbacks
-
-    // Query the world for overlapping shapes.
-    this.m_world.QueryPointAABB(p, (fixture: b2.Fixture): boolean => {
-      const body = fixture.GetBody();
-      if (body.GetType() === b2.BodyType.b2_dynamicBody) {
-        const inside = fixture.TestPoint(p);
-        if (inside) {
-          hit_fixture = fixture;
-          return false; // We are done, terminate the query.
-        }
-      }
-      return true; // Continue the query.
-    });
-
-    if (hit_fixture) {
-      const frequencyHz = 5.0;
-      const dampingRatio = 0.7;
-
-      const body = hit_fixture.GetBody();
-      const jd: b2.MouseJointDef = new b2.MouseJointDef();
-      jd.bodyA = this.m_groundBody;
-      jd.bodyB = body;
-      jd.target.Copy(p);
-      jd.maxForce = 1000 * body.GetMass();
-      b2.LinearStiffness(jd, frequencyHz, dampingRatio, jd.bodyA, jd.bodyB);
-
-      this.m_mouseJoint = this.m_world.CreateJoint(jd);
-      body.SetAwake(true);
-    }
-  }
-
-  public SpawnBomb(worldPt: b2.Vec2): void {
-    this.m_bombSpawnPoint.Copy(worldPt);
-    this.m_bombSpawning = true;
-  }
-
-  public CompleteBombSpawn(p: b2.Vec2): void {
-    if (!this.m_bombSpawning) {
-      return;
-    }
-
-    const multiplier: number = 30;
-    const vel: b2.Vec2 = b2.Vec2.SubVV(this.m_bombSpawnPoint, p, new b2.Vec2());
-    vel.SelfMul(multiplier);
-    this.LaunchBombAt(this.m_bombSpawnPoint, vel);
-    this.m_bombSpawning = false;
-  }
-
-  public ShiftMouseDown(p: b2.Vec2): void {
-    this.m_mouseWorld.Copy(p);
-
-    if (this.m_mouseJoint !== null) {
-      return;
-    }
-
-    this.SpawnBomb(p);
-  }
-
-  public MouseUp(p: b2.Vec2): void {
-    // #if B2_ENABLE_PARTICLE
-    this.m_mouseTracing = false;
-    // #endif
-    if (this.m_mouseJoint) {
-      this.m_world.DestroyJoint(this.m_mouseJoint);
-      this.m_mouseJoint = null;
-    }
-
-    if (this.m_bombSpawning) {
-      this.CompleteBombSpawn(p);
-    }
-  }
-
-  public MouseMove(p: b2.Vec2): void {
-    this.m_mouseWorld.Copy(p);
-
-    if (this.m_mouseJoint) {
-      this.m_mouseJoint.SetTarget(p);
-    }
-  }
-
-  public LaunchBombAt(position: b2.Vec2, velocity: b2.Vec2): void {
-    if (this.m_bomb) {
-      this.m_world.DestroyBody(this.m_bomb);
-      this.m_bomb = null;
-    }
-
-    const bd: b2.BodyDef = new b2.BodyDef();
-    bd.type = b2.BodyType.b2_dynamicBody;
-    bd.position.Copy(position);
-    bd.bullet = true;
-    this.m_bomb = this.m_world.CreateBody(bd);
-    this.m_bomb.SetLinearVelocity(velocity);
-
-    const circle: b2.CircleShape = new b2.CircleShape();
-    circle.m_radius = 0.3;
-
-    const fd: b2.FixtureDef = new b2.FixtureDef();
-    fd.shape = circle;
-    fd.density = 20;
-    fd.restitution = 0;
-
-    // b2.Vec2 minV = position - b2.Vec2(0.3f,0.3f);
-    // b2.Vec2 maxV = position + b2.Vec2(0.3f,0.3f);
-
-    // b2.AABB aabb;
-    // aabb.lowerBound = minV;
-    // aabb.upperBound = maxV;
-
-    this.m_bomb.CreateFixture(fd);
-  }
-
   public Step(settings: Settings): void {
     let timeStep = settings.m_hertz > 0 ? 1 / settings.m_hertz : 0;
 
@@ -307,17 +150,10 @@ export class Test extends b2.ContactListener {
     this.m_world.SetWarmStarting(settings.m_enableWarmStarting);
     this.m_world.SetContinuousPhysics(settings.m_enableContinuous);
     this.m_world.SetSubStepping(settings.m_enableSubStepping);
-    // #if B2_ENABLE_PARTICLE
-    this.m_particleSystem.SetStrictContactCheck(settings.m_strictContacts);
-    // #endif
 
     this.m_pointCount = 0;
 
-    // #if B2_ENABLE_PARTICLE
-    this.m_world.Step(timeStep, settings.m_velocityIterations, settings.m_positionIterations, settings.m_particleIterations);
-    // #else
-    // this.m_world.Step(timeStep, settings.velocityIterations, settings.positionIterations);
-    // #endif
+    this.m_world.Step(timeStep, settings.m_velocityIterations, settings.m_positionIterations);
 
     this.m_world.DebugDraw();
 
@@ -364,7 +200,6 @@ export class Test extends b2.ContactListener {
     return 1.0;
   }
 
-  // #if B2_ENABLE_PARTICLE
   public static readonly k_ParticleColors: b2.Color[] = [
     new b2.Color().SetByteRGBA(0xff, 0x00, 0x00, 0xff), // red
     new b2.Color().SetByteRGBA(0x00, 0xff, 0x00, 0xff), // green
