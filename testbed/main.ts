@@ -47,8 +47,7 @@ export class Main {
   public m_max_demo_time: number = 1000 * 10;
   public m_canvas_div: HTMLDivElement;
   public m_canvas_2d: HTMLCanvasElement;
-  public m_ctx: CanvasRenderingContext2D | null = null;
-  public m_demo_button: HTMLInputElement;
+  public m_ctx: CanvasRenderingContext2D | null = null
 
   constructor(time: number) {
     const fps_div: HTMLDivElement = this.m_fps_div = document.body.appendChild(document.createElement("div"));
@@ -118,18 +117,7 @@ export class Main {
 
     g_debugDraw.m_ctx = this.m_ctx = this.m_canvas_2d.getContext("2d");
 
-    const controls_div: HTMLDivElement = view_div.appendChild(document.createElement("div"));
-    controls_div.style.position = "absolute"; // relative to view_div
-    controls_div.style.backgroundColor = "rgba(255,255,255,0.5)";
-    controls_div.style.padding = "8px";
-    controls_div.style.right = "0px";
-    controls_div.style.top = "0px";
-    controls_div.style.bottom = "0px";
-    controls_div.style.overflowY = "scroll";
-
     // tests select box
-    controls_div.appendChild(document.createTextNode("Tests"));
-    controls_div.appendChild(document.createElement("br"));
     const test_select: HTMLSelectElement = document.createElement("select");
     const test_options: HTMLOptionElement[] = [];
     for (let i: number = 0; i < g_testEntries.length; ++i) {
@@ -148,114 +136,13 @@ export class Main {
       this.m_settings.m_testIndex = test_select.selectedIndex;
       this.LoadTest();
     });
-    controls_div.appendChild(test_select);
     this.m_test_select = test_select;
     this.m_test_options = test_options;
-    controls_div.appendChild(document.createElement("br"));
-
-    controls_div.appendChild(document.createElement("hr"));
-
     // simulation number inputs
-    function connect_number_input(parent: Node, label: string, init: number, update: (value: number) => void, min: number, max: number, step: number): HTMLInputElement {
-      const number_input_tr: HTMLTableRowElement = parent.appendChild(document.createElement("tr"));
-      const number_input_td0: HTMLTableDataCellElement = number_input_tr.appendChild(document.createElement("td"));
-      number_input_td0.align = "right";
-      number_input_td0.appendChild(document.createTextNode(label));
-      const number_input_td1: HTMLTableDataCellElement = number_input_tr.appendChild(document.createElement("td"));
-      const number_input: HTMLInputElement = document.createElement("input");
-      number_input.size = 8;
-      number_input.min = min.toString();
-      number_input.max = max.toString();
-      number_input.step = step.toString();
-      number_input.value = init.toString();
-      number_input.addEventListener("change", (e: Event): void => {
-        update(parseInt(number_input.value, 10));
-      });
-      number_input_td1.appendChild(number_input);
-      return number_input;
-    }
-
-    const number_input_table: HTMLTableElement = controls_div.appendChild(document.createElement("table"));
-    connect_number_input(number_input_table, "Vel Iters", this.m_settings.m_velocityIterations, (value: number): void => { this.m_settings.m_velocityIterations = value; }, 1, 20, 1);
-    connect_number_input(number_input_table, "Pos Iters", this.m_settings.m_positionIterations, (value: number): void => { this.m_settings.m_positionIterations = value; }, 1, 20, 1);
-    // #if B2_ENABLE_PARTICLE
-    connect_number_input(number_input_table, "Pcl Iters", this.m_settings.m_particleIterations, (value: number): void => { this.m_settings.m_particleIterations = value; }, 1, 100, 1);
-    // #endif
-    connect_number_input(number_input_table, "Hertz", this.m_settings.m_hertz, (value: number): void => { this.m_settings.m_hertz = value; }, 10, 120, 1);
-
-    // simulation checkbox inputs
-    function connect_checkbox_input(parent: Node, label: string, init: boolean, update: (value: boolean) => void): HTMLInputElement {
-      const checkbox_input: HTMLInputElement = document.createElement("input");
-      checkbox_input.type = "checkbox";
-      checkbox_input.checked = init;
-      checkbox_input.addEventListener("click", (e: MouseEvent): void => {
-        update(checkbox_input.checked);
-      });
-      parent.appendChild(checkbox_input);
-      parent.appendChild(document.createTextNode(label));
-      parent.appendChild(document.createElement("br"));
-      return checkbox_input;
-    }
-
-    connect_checkbox_input(controls_div, "Sleep", this.m_settings.m_enableSleep, (value: boolean): void => { this.m_settings.m_enableSleep = value; });
-    connect_checkbox_input(controls_div, "Warm Starting", this.m_settings.m_enableWarmStarting, (value: boolean): void => { this.m_settings.m_enableWarmStarting = value; });
-    connect_checkbox_input(controls_div, "Time of Impact", this.m_settings.m_enableContinuous, (value: boolean): void => { this.m_settings.m_enableContinuous = value; });
-    connect_checkbox_input(controls_div, "Sub-Stepping", this.m_settings.m_enableSubStepping, (value: boolean): void => { this.m_settings.m_enableSubStepping = value; });
-    // #if B2_ENABLE_PARTICLE
-    connect_checkbox_input(controls_div, "Strict Particle/Body Contacts", this.m_settings.m_strictContacts, (value: boolean): void => { this.m_settings.m_strictContacts = value; });
-    // #endif
-
     // draw checkbox inputs
-    const draw_fieldset: HTMLFieldSetElement = controls_div.appendChild(document.createElement("fieldset"));
-    const draw_legend: HTMLLegendElement = draw_fieldset.appendChild(document.createElement("legend"));
-    draw_legend.appendChild(document.createTextNode("Draw"));
-    connect_checkbox_input(draw_fieldset, "Shapes", this.m_settings.m_drawShapes, (value: boolean): void => { this.m_settings.m_drawShapes = value; });
-    // #if B2_ENABLE_PARTICLE
-    connect_checkbox_input(draw_fieldset, "Particles", this.m_settings.m_drawParticles, (value: boolean): void => { this.m_settings.m_drawParticles = value; });
-    // #endif
-    connect_checkbox_input(draw_fieldset, "Joints", this.m_settings.m_drawJoints, (value: boolean): void => { this.m_settings.m_drawJoints = value; });
-    connect_checkbox_input(draw_fieldset, "AABBs", this.m_settings.m_drawAABBs, (value: boolean): void => { this.m_settings.m_drawAABBs = value; });
-    connect_checkbox_input(draw_fieldset, "Contact Points", this.m_settings.m_drawContactPoints, (value: boolean): void => { this.m_settings.m_drawContactPoints = value; });
-    connect_checkbox_input(draw_fieldset, "Contact Normals", this.m_settings.m_drawContactNormals, (value: boolean): void => { this.m_settings.m_drawContactNormals = value; });
-    connect_checkbox_input(draw_fieldset, "Contact Impulses", this.m_settings.m_drawContactImpulse, (value: boolean): void => { this.m_settings.m_drawContactImpulse = value; });
-    connect_checkbox_input(draw_fieldset, "Friction Impulses", this.m_settings.m_drawFrictionImpulse, (value: boolean): void => { this.m_settings.m_drawFrictionImpulse = value; });
-    connect_checkbox_input(draw_fieldset, "Center of Masses", this.m_settings.m_drawCOMs, (value: boolean): void => { this.m_settings.m_drawCOMs = value; });
-    connect_checkbox_input(draw_fieldset, "Statistics", this.m_settings.m_drawStats, (value: boolean): void => { this.m_settings.m_drawStats = value; });
-    connect_checkbox_input(draw_fieldset, "Profile", this.m_settings.m_drawProfile, (value: boolean): void => { this.m_settings.m_drawProfile = value; });
-
     // simulation buttons
-    function connect_button_input(parent: Node, label: string, callback: (e: MouseEvent) => void): HTMLInputElement {
-      const button_input: HTMLInputElement = document.createElement("input");
-      button_input.type = "button";
-      button_input.style.width = "120";
-      button_input.value = label;
-      button_input.addEventListener("click", callback);
-      parent.appendChild(button_input);
-      parent.appendChild(document.createElement("br"));
-      return button_input;
-    }
-
-    const button_div: HTMLDivElement = controls_div.appendChild(document.createElement("div"));
-    button_div.align = "center";
-    connect_button_input(button_div, "Pause (P)", (e: MouseEvent): void => { this.Pause(); });
-    connect_button_input(button_div, "Single Step (O)", (e: MouseEvent): void => { this.SingleStep(); });
-    connect_button_input(button_div, "Restart (R)", (e: MouseEvent): void => { this.LoadTest(); });
-    this.m_demo_button = connect_button_input(button_div, "Demo", (e: MouseEvent): void => { this.ToggleDemo(); });
-
     // disable context menu to use right-click
     window.addEventListener("contextmenu", (e: MouseEvent): void => { e.preventDefault(); }, true);
-
-    canvas_div.addEventListener("mousemove", (e: MouseEvent): void => { this.HandleMouseMove(e); });
-    canvas_div.addEventListener("mousedown", (e: MouseEvent): void => { this.HandleMouseDown(e); });
-    canvas_div.addEventListener("mouseup", (e: MouseEvent): void => { this.HandleMouseUp(e); });
-    canvas_div.addEventListener("mousewheel", (e: Event): void => { this.HandleMouseWheel(e as MouseWheelEvent); });
-
-    canvas_div.addEventListener("touchmove", (e: TouchEvent): void => { this.HandleTouchMove(e); });
-    canvas_div.addEventListener("touchstart", (e: TouchEvent): void => { this.HandleTouchStart(e); });
-    canvas_div.addEventListener("touchend", (e: TouchEvent): void => { this.HandleTouchEnd(e); });
-
-    window.addEventListener("keydown", (e: KeyboardEvent): void => { this.HandleKeyDown(e); });
-    window.addEventListener("keyup", (e: KeyboardEvent): void => { this.HandleKeyUp(e); });
 
     this.LoadTest();
 
@@ -266,23 +153,6 @@ export class Main {
     g_camera.m_zoom = (this.m_test) ? (this.m_test.GetDefaultViewZoom()) : (1.0);
     g_camera.m_center.Set(0, 20 * g_camera.m_zoom);
     ///g_camera.m_roll.SetAngle(b2.DegToRad(0));
-  }
-
-  public MoveCamera(move: b2.Vec2): void {
-    const position: b2.Vec2 = g_camera.m_center.Clone();
-    ///move.SelfRotate(g_camera.m_roll.GetAngle());
-    position.SelfAdd(move);
-    g_camera.m_center.Copy(position);
-  }
-
-  ///public RollCamera(roll: number): void {
-  ///  const angle: number = g_camera.m_roll.GetAngle();
-  ///  g_camera.m_roll.SetAngle(angle + roll);
-  ///}
-
-  public ZoomCamera(zoom: number): void {
-    g_camera.m_zoom *= zoom;
-    g_camera.m_zoom = b2.Clamp(g_camera.m_zoom, 0.02, 20);
   }
 
   private m_mouse = new b2.Vec2();
@@ -306,50 +176,6 @@ export class Main {
     }
   }
 
-  public HandleMouseDown(e: MouseEvent): void {
-    const element: b2.Vec2 = new b2.Vec2(e.clientX, e.clientY);
-    const world: b2.Vec2 = g_camera.ConvertScreenToWorld(element, new b2.Vec2());
-
-    switch (e.which) {
-    case 1: // left mouse button
-      this.m_lMouseDown = true;
-      if (this.m_shift) {
-        if (this.m_test) { this.m_test.ShiftMouseDown(world); }
-      } else {
-        if (this.m_test) { this.m_test.MouseDown(world); }
-      }
-      break;
-    case 3: // right mouse button
-      this.m_rMouseDown = true;
-      const projection: b2.Vec2 = g_camera.ConvertElementToProjection(element, new b2.Vec2());
-      this.m_projection0.Copy(projection);
-      this.m_viewCenter0.Copy(g_camera.m_center);
-      break;
-    }
-  }
-
-  public HandleMouseUp(e: MouseEvent): void {
-    const element: b2.Vec2 = new b2.Vec2(e.clientX, e.clientY);
-    const world: b2.Vec2 = g_camera.ConvertScreenToWorld(element, new b2.Vec2());
-
-    switch (e.which) {
-    case 1: // left mouse button
-      this.m_lMouseDown = false;
-      if (this.m_test) { this.m_test.MouseUp(world); }
-      break;
-    case 3: // right mouse button
-      this.m_rMouseDown = false;
-      break;
-    }
-  }
-
-  public HandleTouchMove(e: TouchEvent): void {
-    const element: b2.Vec2 = new b2.Vec2(e.touches[0].clientX, e.touches[0].clientY);
-    const world: b2.Vec2 = g_camera.ConvertScreenToWorld(element, new b2.Vec2());
-    if (this.m_test) { this.m_test.MouseMove(world); }
-    e.preventDefault();
-  }
-
   public HandleTouchStart(e: TouchEvent): void {
     const element: b2.Vec2 = new b2.Vec2(e.touches[0].clientX, e.touches[0].clientY);
     const world: b2.Vec2 = g_camera.ConvertScreenToWorld(element, new b2.Vec2());
@@ -362,136 +188,6 @@ export class Main {
     e.preventDefault();
   }
 
-  public HandleMouseWheel(e: MouseWheelEvent): void {
-    if (e.deltaY > 0) {
-      this.ZoomCamera(1 / 1.1);
-    } else if (e.deltaY < 0) {
-      this.ZoomCamera(1.1);
-    }
-    e.preventDefault();
-  }
-
-  public HandleKeyDown(e: KeyboardEvent): void {
-    switch (e.key) {
-    case "Control":
-      this.m_ctrl = true;
-      break;
-    case "Shift":
-      this.m_shift = true;
-      break;
-    case "ArrowLeft":
-      if (this.m_ctrl) {
-        if (this.m_test) {
-          this.m_test.ShiftOrigin(new b2.Vec2(2, 0));
-        }
-      } else {
-        this.MoveCamera(new b2.Vec2(-0.5, 0));
-      }
-      break;
-    case "ArrowRight":
-      if (this.m_ctrl) {
-        if (this.m_test) {
-          this.m_test.ShiftOrigin(new b2.Vec2(-2, 0));
-        }
-      } else {
-        this.MoveCamera(new b2.Vec2(0.5, 0));
-      }
-      break;
-    case "ArrowDown":
-      if (this.m_ctrl) {
-        if (this.m_test) {
-          this.m_test.ShiftOrigin(new b2.Vec2(0, 2));
-        }
-      } else {
-        this.MoveCamera(new b2.Vec2(0, -0.5));
-      }
-      break;
-    case "ArrowUp":
-      if (this.m_ctrl) {
-        if (this.m_test) {
-          this.m_test.ShiftOrigin(new b2.Vec2(0, -2));
-        }
-      } else {
-        this.MoveCamera(new b2.Vec2(0, 0.5));
-      }
-      break;
-    case "Home":
-      this.HomeCamera();
-      break;
-    ///case "PageUp":
-    ///  this.RollCamera(b2.DegToRad(-1));
-    ///  break;
-    ///case "PageDown":
-    ///  this.RollCamera(b2.DegToRad(1));
-    ///  break;
-    case "z":
-      this.ZoomCamera(1.1);
-      break;
-    case "x":
-      this.ZoomCamera(0.9);
-      break;
-    case "r":
-      this.LoadTest();
-      break;
-    case " ":
-      if (this.m_test) {
-        this.m_test.LaunchBomb();
-      }
-      break;
-    case "o":
-      this.SingleStep();
-      break;
-    case "p":
-      this.Pause();
-      break;
-    case "[":
-      this.DecrementTest();
-      break;
-    case "]":
-      this.IncrementTest();
-      break;
-    // #if B2_ENABLE_PARTICLE
-    case ",":
-      if (this.m_shift) {
-        // Press < to select the previous particle parameter setting.
-        Test.particleParameter.Decrement();
-      }
-      break;
-    case ".":
-      if (this.m_shift) {
-        // Press > to select the next particle parameter setting.
-        Test.particleParameter.Increment();
-      }
-      break;
-    // #endif
-    default:
-      // console.log(e.keyCode);
-      break;
-    }
-
-    if (this.m_test) {
-      this.m_test.Keyboard(e.key);
-    }
-  }
-
-  public HandleKeyUp(e: KeyboardEvent): void {
-    switch (e.key) {
-    case "Control":
-      this.m_ctrl = false;
-      break;
-    case "Shift":
-      this.m_shift = false;
-      break;
-    default:
-      // console.log(e.keyCode);
-      break;
-    }
-
-    if (this.m_test) {
-      this.m_test.KeyboardUp(e.key);
-    }
-  }
-
   public UpdateTest(time_elapsed: number): void {
     if (this.m_demo_mode) {
       this.m_demo_time += time_elapsed;
@@ -500,10 +196,10 @@ export class Main {
         this.IncrementTest();
       }
 
-      const str: string = ((500 + this.m_max_demo_time - this.m_demo_time) / 1000).toFixed(0).toString();
-      this.m_demo_button.value = str;
+      // const str: string = ((500 + this.m_max_demo_time - this.m_demo_time) / 1000).toFixed(0).toString();
+      // this.m_demo_button.value = str;
     } else {
-      this.m_demo_button.value = "Demo";
+      // this.m_demo_button.value = "Demo";
     }
   }
 
