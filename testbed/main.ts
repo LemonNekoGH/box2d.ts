@@ -20,7 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import * as b2 from "@box2d";
 import { Settings } from "./settings.js";
 import { Test, g_testEntries } from "./test.js";
 import { g_debugDraw, g_camera } from "./draw.js";
@@ -30,46 +29,15 @@ export class Main {
   public m_fps_time: number = 0;
   public m_fps_frames: number = 0;
   public m_fps: number = 0;
-  public m_fps_div: HTMLDivElement;
-  public m_debug_div: HTMLDivElement;
   public readonly m_settings: Settings = new Settings();
   public m_test?: Test;
-  public m_test_select: HTMLSelectElement;
-  public m_test_options: HTMLOptionElement[];
   public m_shift: boolean = false;
-  public m_ctrl: boolean = false;
-  public m_lMouseDown: boolean = false;
-  public m_rMouseDown: boolean = false;
-  public readonly m_projection0: b2.Vec2 = new b2.Vec2();
-  public readonly m_viewCenter0: b2.Vec2 = new b2.Vec2();
-  public m_demo_mode: boolean = false;
   public m_demo_time: number = 0;
-  public m_max_demo_time: number = 1000 * 10;
   public m_canvas_div: HTMLDivElement;
   public m_canvas_2d: HTMLCanvasElement;
   public m_ctx: CanvasRenderingContext2D | null = null
 
   constructor(time: number) {
-    const fps_div: HTMLDivElement = this.m_fps_div = document.body.appendChild(document.createElement("div"));
-    fps_div.style.position = "absolute";
-    fps_div.style.left = "0px";
-    fps_div.style.bottom = "0px";
-    fps_div.style.backgroundColor = "rgba(0,0,255,0.75)";
-    fps_div.style.color = "white";
-    fps_div.style.font = "10pt Courier New";
-    fps_div.style.zIndex = "256";
-    fps_div.innerHTML = "FPS";
-
-    const debug_div: HTMLDivElement = this.m_debug_div = document.body.appendChild(document.createElement("div"));
-    debug_div.style.position = "absolute";
-    debug_div.style.left = "0px";
-    debug_div.style.bottom = "0px";
-    debug_div.style.backgroundColor = "rgba(0,0,255,0.75)";
-    debug_div.style.color = "white";
-    debug_div.style.font = "10pt Courier New";
-    debug_div.style.zIndex = "256";
-    debug_div.innerHTML = "";
-
     document.body.style.backgroundColor = "rgba(51, 51, 51, 1.0)";
 
     const main_div: HTMLDivElement = document.body.appendChild(document.createElement("div"));
@@ -85,11 +53,6 @@ export class Main {
     window.addEventListener("resize", (e: UIEvent): void => { resize_main_div(); });
     window.addEventListener("orientationchange", (e: Event): void => { resize_main_div(); });
     resize_main_div();
-
-    const title_div: HTMLDivElement = main_div.appendChild(document.createElement("div"));
-    title_div.style.textAlign = "center";
-    title_div.style.color = "grey";
-    title_div.innerHTML = "Box2D Testbed version " + b2.version.toString();
 
     const view_div: HTMLDivElement = main_div.appendChild(document.createElement("div"));
 
@@ -117,27 +80,6 @@ export class Main {
 
     g_debugDraw.m_ctx = this.m_ctx = this.m_canvas_2d.getContext("2d");
 
-    // tests select box
-    const test_select: HTMLSelectElement = document.createElement("select");
-    const test_options: HTMLOptionElement[] = [];
-    for (let i: number = 0; i < g_testEntries.length; ++i) {
-      const option: HTMLOptionElement = document.createElement("option");
-      option.text = `${g_testEntries[i].category}:${g_testEntries[i].name}`;
-      option.value = i.toString();
-      test_options.push(option);
-    }
-    test_options.sort((a: HTMLOptionElement, b: HTMLOptionElement) => a.text.localeCompare(b.text));
-    for (let i: number = 0; i < test_options.length; ++i) {
-      const option: HTMLOptionElement = test_options[i];
-      test_select.add(option);
-    }
-    test_select.selectedIndex = this.m_settings.m_testIndex = 0;
-    test_select.addEventListener("change", (e: Event): void => {
-      this.m_settings.m_testIndex = test_select.selectedIndex;
-      this.LoadTest();
-    });
-    this.m_test_select = test_select;
-    this.m_test_options = test_options;
     // simulation number inputs
     // draw checkbox inputs
     // simulation buttons
@@ -155,100 +97,20 @@ export class Main {
     ///g_camera.m_roll.SetAngle(b2.DegToRad(0));
   }
 
-  private m_mouse = new b2.Vec2();
-
-  public HandleMouseMove(e: MouseEvent): void {
-    const element: b2.Vec2 = new b2.Vec2(e.clientX, e.clientY);
-    const world: b2.Vec2 = g_camera.ConvertScreenToWorld(element, new b2.Vec2());
-
-    this.m_mouse.Copy(element);
-
-    if (this.m_lMouseDown) {
-      if (this.m_test) { this.m_test.MouseMove(world); }
-    }
-
-    if (this.m_rMouseDown) {
-      // m_center = viewCenter0 - (projection - projection0);
-      const projection: b2.Vec2 = g_camera.ConvertElementToProjection(element, new b2.Vec2());
-      const diff: b2.Vec2 = b2.Vec2.SubVV(projection, this.m_projection0, new b2.Vec2());
-      const center: b2.Vec2 = b2.Vec2.SubVV(this.m_viewCenter0, diff, new b2.Vec2());
-      g_camera.m_center.Copy(center);
-    }
-  }
-
-  public HandleTouchStart(e: TouchEvent): void {
-    const element: b2.Vec2 = new b2.Vec2(e.touches[0].clientX, e.touches[0].clientY);
-    const world: b2.Vec2 = g_camera.ConvertScreenToWorld(element, new b2.Vec2());
-    if (this.m_test) { this.m_test.MouseDown(world); }
-    e.preventDefault();
-  }
-
-  public HandleTouchEnd(e: TouchEvent): void {
-    if (this.m_test) { this.m_test.MouseUp(this.m_test.m_mouseWorld); }
-    e.preventDefault();
-  }
-
   public UpdateTest(time_elapsed: number): void {
-    if (this.m_demo_mode) {
       this.m_demo_time += time_elapsed;
-
-      if (this.m_demo_time > this.m_max_demo_time) {
-        this.IncrementTest();
-      }
-
-      // const str: string = ((500 + this.m_max_demo_time - this.m_demo_time) / 1000).toFixed(0).toString();
-      // this.m_demo_button.value = str;
-    } else {
-      // this.m_demo_button.value = "Demo";
-    }
-  }
-
-  public DecrementTest(): void {
-    if (this.m_settings.m_testIndex <= 0) {
-      this.m_settings.m_testIndex = this.m_test_options.length;
-    }
-    this.m_settings.m_testIndex--;
-    this.m_test_select.selectedIndex = this.m_settings.m_testIndex;
-    this.LoadTest();
-  }
-
-  public IncrementTest(): void {
-    this.m_settings.m_testIndex++;
-    if (this.m_settings.m_testIndex >= this.m_test_options.length) {
-      this.m_settings.m_testIndex = 0;
-    }
-    this.m_test_select.selectedIndex = this.m_settings.m_testIndex;
-    this.LoadTest();
   }
 
   public LoadTest(restartTest: boolean = false): void {
     // #if B2_ENABLE_PARTICLE
     Test.fullscreenUI.Reset();
-    if (!restartTest) { Test.particleParameter.Reset(); }
     // #endif
     this.m_demo_time = 0;
-    // #if B2_ENABLE_PARTICLE
-    if (this.m_test) {
-      this.m_test.RestoreParticleParameters();
-    }
     // #endif
-    this.m_test = g_testEntries[parseInt(this.m_test_options[this.m_settings.m_testIndex].value)].createFcn();
+    this.m_test = g_testEntries[0].createFcn();
     if (!restartTest) {
       this.HomeCamera();
     }
-  }
-
-  public Pause(): void {
-    this.m_settings.m_pause = !this.m_settings.m_pause;
-  }
-
-  public SingleStep(): void {
-    this.m_settings.m_pause = true;
-    this.m_settings.m_singleStep = true;
-  }
-
-  public ToggleDemo(): void {
-    this.m_demo_mode = !this.m_demo_mode;
   }
 
   public SimulationLoop(time: number): void {
@@ -266,8 +128,6 @@ export class Main {
       this.m_fps = (this.m_fps_frames * 1000) / this.m_fps_time;
       this.m_fps_frames = 0;
       this.m_fps_time = 0;
-
-      this.m_fps_div.innerHTML = this.m_fps.toFixed(1).toString();
     }
 
     if (time_elapsed > 0) {
@@ -303,25 +163,6 @@ export class Main {
         ctx.translate(-g_camera.m_center.x, -g_camera.m_center.y);
 
         if (this.m_test) { this.m_test.Step(this.m_settings); }
-
-        // #if B2_ENABLE_PARTICLE
-        // Update the state of the particle parameter.
-        Test.particleParameter.Changed(restartTest);
-        // #endif
-
-        // #if B2_ENABLE_PARTICLE
-        let msg = this.m_test_options[this.m_settings.m_testIndex].text;
-        if (Test.fullscreenUI.GetParticleParameterSelectionEnabled()) {
-          msg += " : ";
-          msg += Test.particleParameter.GetName();
-        }
-        if (this.m_test) { this.m_test.DrawTitle(msg); }
-        // #else
-        // if (this.m_test) { this.m_test.DrawTitle(this.m_test_options[this.m_settings.m_testIndex].text); }
-        // #endif
-
-        // ctx.strokeStyle = "yellow";
-        // ctx.strokeRect(mouse_world.x - 0.5, mouse_world.y - 0.5, 1.0, 1.0);
 
         ctx.restore();
       }

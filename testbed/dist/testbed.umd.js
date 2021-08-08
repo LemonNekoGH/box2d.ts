@@ -118,64 +118,6 @@
           this.m_width = 1280;
           this.m_height = 800;
       }
-      ConvertScreenToWorld(screenPoint, out) {
-          return this.ConvertElementToWorld(screenPoint, out);
-      }
-      ConvertWorldToScreen(worldPoint, out) {
-          return this.ConvertWorldToElement(worldPoint, out);
-      }
-      ConvertViewportToElement(viewport, out) {
-          // 0,0 at center of canvas, x right and y up
-          const element_x = viewport.x + (0.5 * this.m_width);
-          const element_y = (0.5 * this.m_height) - viewport.y;
-          return out.Set(element_x, element_y);
-      }
-      ConvertElementToViewport(element, out) {
-          // 0,0 at center of canvas, x right and y up
-          const viewport_x = element.x - (0.5 * this.m_width);
-          const viewport_y = (0.5 * this.m_height) - element.y;
-          return out.Set(viewport_x, viewport_y);
-      }
-      ConvertProjectionToViewport(projection, out) {
-          const viewport = out.Copy(projection);
-          b2__namespace.Vec2.MulSV(1 / this.m_zoom, viewport, viewport);
-          ///b2.Vec2.MulSV(this.m_extent, viewport, viewport);
-          b2__namespace.Vec2.MulSV(0.5 * this.m_height / this.m_extent, projection, projection);
-          return viewport;
-      }
-      ConvertViewportToProjection(viewport, out) {
-          const projection = out.Copy(viewport);
-          ///b2.Vec2.MulSV(1 / this.m_extent, projection, projection);
-          b2__namespace.Vec2.MulSV(2 * this.m_extent / this.m_height, projection, projection);
-          b2__namespace.Vec2.MulSV(this.m_zoom, projection, projection);
-          return projection;
-      }
-      ConvertWorldToProjection(world, out) {
-          const projection = out.Copy(world);
-          b2__namespace.Vec2.SubVV(projection, this.m_center, projection);
-          ///b2.Rot.MulTRV(this.m_roll, projection, projection);
-          return projection;
-      }
-      ConvertProjectionToWorld(projection, out) {
-          const world = out.Copy(projection);
-          ///b2.Rot.MulRV(this.m_roll, world, world);
-          b2__namespace.Vec2.AddVV(this.m_center, world, world);
-          return world;
-      }
-      ConvertElementToWorld(element, out) {
-          const viewport = this.ConvertElementToViewport(element, out);
-          const projection = this.ConvertViewportToProjection(viewport, out);
-          return this.ConvertProjectionToWorld(projection, out);
-      }
-      ConvertWorldToElement(world, out) {
-          const projection = this.ConvertWorldToProjection(world, out);
-          const viewport = this.ConvertProjectionToViewport(projection, out);
-          return this.ConvertViewportToElement(viewport, out);
-      }
-      ConvertElementToProjection(element, out) {
-          const viewport = this.ConvertElementToViewport(element, out);
-          return this.ConvertViewportToProjection(viewport, out);
-      }
   }
   // This class implements debug drawing callbacks that are invoked
   // inside b2World::Step.
@@ -329,48 +271,8 @@
               ctx.restore();
           }
       }
-      DrawStringWorld(x, y, message) {
-          const ctx = this.m_ctx;
-          if (ctx) {
-              const p = DebugDraw.DrawStringWorld_s_p.Set(x, y);
-              // world -> viewport
-              const vt = g_camera.m_center;
-              b2__namespace.Vec2.SubVV(p, vt, p);
-              ///const vr = g_camera.m_roll;
-              ///b2.Rot.MulTRV(vr, p, p);
-              const vs = g_camera.m_zoom;
-              b2__namespace.Vec2.MulSV(1 / vs, p, p);
-              // viewport -> canvas
-              const cs = 0.5 * g_camera.m_height / g_camera.m_extent;
-              b2__namespace.Vec2.MulSV(cs, p, p);
-              p.y *= -1;
-              const cc = DebugDraw.DrawStringWorld_s_cc.Set(0.5 * ctx.canvas.width, 0.5 * ctx.canvas.height);
-              b2__namespace.Vec2.AddVV(p, cc, p);
-              ctx.save();
-              ctx.setTransform(1, 0, 0, 1, 0, 0);
-              ctx.font = "15px DroidSans";
-              const color = DebugDraw.DrawStringWorld_s_color;
-              ctx.fillStyle = color.MakeStyleString();
-              ctx.fillText(message, p.x, p.y);
-              ctx.restore();
-          }
-      }
-      DrawAABB(aabb, color) {
-          const ctx = this.m_ctx;
-          if (ctx) {
-              ctx.strokeStyle = color.MakeStyleString();
-              const x = aabb.lowerBound.x;
-              const y = aabb.lowerBound.y;
-              const w = aabb.upperBound.x - aabb.lowerBound.x;
-              const h = aabb.upperBound.y - aabb.lowerBound.y;
-              ctx.strokeRect(x, y, w, h);
-          }
-      }
   }
   DebugDraw.DrawString_s_color = new b2__namespace.Color(0.9, 0.6, 0.6);
-  DebugDraw.DrawStringWorld_s_p = new b2__namespace.Vec2();
-  DebugDraw.DrawStringWorld_s_cc = new b2__namespace.Vec2();
-  DebugDraw.DrawStringWorld_s_color = new b2__namespace.Color(0.5, 0.9, 0.5);
   const g_debugDraw = new DebugDraw();
   const g_camera = new Camera();
 
@@ -415,481 +317,7 @@
       SetParticleParameterSelectionEnabled(enable) {
           this.m_particleParameterSelectionEnabled = enable;
       }
-      /**
-       * Get whether particle parameter selection is enabled.
-       */
-      GetParticleParameterSelectionEnabled() {
-          return this.m_particleParameterSelectionEnabled;
-      }
   }
-  // #endif
-
-  /*
-   * Copyright (c) 2014 Google, Inc.
-   *
-   * This software is provided 'as-is', without any express or implied
-   * warranty.  In no event will the authors be held liable for any damages
-   * arising from the use of this software.
-   * Permission is granted to anyone to use this software for any purpose,
-   * including commercial applications, and to alter it and redistribute it
-   * freely, subject to the following restrictions:
-   * 1. The origin of this software must not be misrepresented; you must not
-   * claim that you wrote the original software. If you use this software
-   * in a product, an acknowledgment in the product documentation would be
-   * appreciated but is not required.
-   * 2. Altered source versions must be plainly marked as such, and must not be
-   * misrepresented as being the original software.
-   * 3. This notice may not be removed or altered from any source distribution.
-   */
-  class EmittedParticleCallback {
-      /**
-       * Called for each created particle.
-       */
-      ParticleCreated(system, particleIndex) { }
-  }
-  /**
-   * Emit particles from a circular region.
-   */
-  class RadialEmitter {
-      constructor() {
-          /**
-           * Pointer to global world
-           */
-          this.m_particleSystem = null;
-          /**
-           * Called for each created particle.
-           */
-          this.m_callback = null;
-          /**
-           * Center of particle emitter
-           */
-          this.m_origin = new b2__namespace.Vec2();
-          /**
-           * Launch direction.
-           */
-          this.m_startingVelocity = new b2__namespace.Vec2();
-          /**
-           * Speed particles are emitted
-           */
-          this.m_speed = 0.0;
-          /**
-           * Half width / height of particle emitter
-           */
-          this.m_halfSize = new b2__namespace.Vec2();
-          /**
-           * Particles per second
-           */
-          this.m_emitRate = 1.0;
-          /**
-           * Initial color of particle emitted.
-           */
-          this.m_color = new b2__namespace.Color();
-          /**
-           * Number particles to emit on the next frame
-           */
-          this.m_emitRemainder = 0.0;
-          /**
-           * Flags for created particles, see b2ParticleFlag.
-           */
-          this.m_flags = b2__namespace.ParticleFlag.b2_waterParticle;
-          /**
-           * Group to put newly created particles in.
-           */
-          this.m_group = null;
-      }
-      /**
-       * Calculate a random number 0.0..1.0.
-       */
-      static Random() {
-          return Math.random();
-      }
-      __dtor__() {
-          this.SetGroup(null);
-      }
-      /**
-       * Set the center of the emitter.
-       */
-      SetPosition(origin) {
-          this.m_origin.Copy(origin);
-      }
-      /**
-       * Get the center of the emitter.
-       */
-      GetPosition(out) {
-          return out.Copy(this.m_origin);
-      }
-      /**
-       * Set the size of the circle which emits particles.
-       */
-      SetSize(size) {
-          this.m_halfSize.Copy(size).SelfMul(0.5);
-      }
-      /**
-       * Get the size of the circle which emits particles.
-       */
-      GetSize(out) {
-          return out.Copy(this.m_halfSize).SelfMul(2.0);
-      }
-      /**
-       * Set the starting velocity of emitted particles.
-       */
-      SetVelocity(velocity) {
-          this.m_startingVelocity.Copy(velocity);
-      }
-      /**
-       * Get the starting velocity.
-       */
-      GetVelocity(out) {
-          return out.Copy(this.m_startingVelocity);
-      }
-      /**
-       * Set the speed of particles along the direction from the
-       * center of the emitter.
-       */
-      SetSpeed(speed) {
-          this.m_speed = speed;
-      }
-      /**
-       * Get the speed of particles along the direction from the
-       * center of the emitter.
-       */
-      GetSpeed() {
-          return this.m_speed;
-      }
-      /**
-       * Set the flags for created particles.
-       */
-      SetParticleFlags(flags) {
-          this.m_flags = flags;
-      }
-      /**
-       * Get the flags for created particles.
-       */
-      GetParticleFlags() {
-          return this.m_flags;
-      }
-      /**
-       * Set the color of particles.
-       */
-      SetColor(color) {
-          this.m_color.Copy(color);
-      }
-      /**
-       * Get the color of particles emitter.
-       */
-      GetColor(out) {
-          return out.Copy(this.m_color);
-      }
-      /**
-       * Set the emit rate in particles per second.
-       */
-      SetEmitRate(emitRate) {
-          this.m_emitRate = emitRate;
-      }
-      /**
-       * Get the current emit rate.
-       */
-      GetEmitRate() {
-          return this.m_emitRate;
-      }
-      /**
-       * Set the particle system this emitter is adding particles to.
-       */
-      SetParticleSystem(particleSystem) {
-          this.m_particleSystem = particleSystem;
-      }
-      /**
-       * Get the particle system this emitter is adding particle to.
-       */
-      GetParticleSystem() {
-          return this.m_particleSystem;
-      }
-      /**
-       * Set the callback that is called on the creation of each
-       * particle.
-       */
-      SetCallback(callback) {
-          this.m_callback = callback;
-      }
-      /**
-       * Get the callback that is called on the creation of each
-       * particle.
-       */
-      GetCallback() {
-          return this.m_callback;
-      }
-      /**
-       * This class sets the group flags to b2_particleGroupCanBeEmpty
-       * so that it isn't destroyed and clears the
-       * b2_particleGroupCanBeEmpty on the group when the emitter no
-       * longer references it so that the group can potentially be
-       * cleaned up.
-       */
-      SetGroup(group) {
-          if (this.m_group) {
-              this.m_group.SetGroupFlags(this.m_group.GetGroupFlags() & ~b2__namespace.ParticleGroupFlag.b2_particleGroupCanBeEmpty);
-          }
-          this.m_group = group;
-          if (this.m_group) {
-              this.m_group.SetGroupFlags(this.m_group.GetGroupFlags() | b2__namespace.ParticleGroupFlag.b2_particleGroupCanBeEmpty);
-          }
-      }
-      /**
-       * Get the group particles should be created within.
-       */
-      GetGroup() {
-          return this.m_group;
-      }
-      /**
-       * dt is seconds that have passed, particleIndices is an
-       * optional pointer to an array which tracks which particles
-       * have been created and particleIndicesCount is the size of the
-       * particleIndices array. This function returns the number of
-       * particles created during this simulation step.
-       */
-      Step(dt, particleIndices, particleIndicesCount = particleIndices ? particleIndices.length : 0) {
-          if (this.m_particleSystem === null) {
-              throw new Error();
-          }
-          let numberOfParticlesCreated = 0;
-          // How many (fractional) particles should we have emitted this frame?
-          this.m_emitRemainder += this.m_emitRate * dt;
-          const pd = new b2__namespace.ParticleDef();
-          pd.color.Copy(this.m_color);
-          pd.flags = this.m_flags;
-          pd.group = this.m_group;
-          // Keep emitting particles on this frame until we only have a
-          // fractional particle left.
-          while (this.m_emitRemainder > 1.0) {
-              this.m_emitRemainder -= 1.0;
-              // Randomly pick a position within the emitter's radius.
-              const angle = RadialEmitter.Random() * 2.0 * b2__namespace.pi;
-              // Distance from the center of the circle.
-              const distance = RadialEmitter.Random();
-              const positionOnUnitCircle = new b2__namespace.Vec2(Math.sin(angle), Math.cos(angle));
-              // Initial position.
-              pd.position.Set(this.m_origin.x + positionOnUnitCircle.x * distance * this.m_halfSize.x, this.m_origin.y + positionOnUnitCircle.y * distance * this.m_halfSize.y);
-              // Send it flying
-              pd.velocity.Copy(this.m_startingVelocity);
-              if (this.m_speed !== 0.0) {
-                  ///  pd.velocity += positionOnUnitCircle * m_speed;
-                  pd.velocity.SelfMulAdd(this.m_speed, positionOnUnitCircle);
-              }
-              const particleIndex = this.m_particleSystem.CreateParticle(pd);
-              if (this.m_callback) {
-                  this.m_callback.ParticleCreated(this.m_particleSystem, particleIndex);
-              }
-              if (particleIndices && (numberOfParticlesCreated < particleIndicesCount)) {
-                  particleIndices[numberOfParticlesCreated] = particleIndex;
-              }
-              ++numberOfParticlesCreated;
-          }
-          return numberOfParticlesCreated;
-      }
-  }
-  // #endif
-
-  /*
-   * Copyright (c) 2014 Google, Inc.
-   *
-   * This software is provided 'as-is', without any express or implied
-   * warranty.  In no event will the authors be held liable for any damages
-   * arising from the use of this software.
-   * Permission is granted to anyone to use this software for any purpose,
-   * including commercial applications, and to alter it and redistribute it
-   * freely, subject to the following restrictions:
-   * 1. The origin of this software must not be misrepresented; you must not
-   * claim that you wrote the original software. If you use this software
-   * in a product, an acknowledgment in the product documentation would be
-   * appreciated but is not required.
-   * 2. Altered source versions must be plainly marked as such, and must not be
-   * misrepresented as being the original software.
-   * 3. This notice may not be removed or altered from any source distribution.
-   */
-  exports.ParticleParameterOptions = void 0;
-  (function (ParticleParameterOptions) {
-      ParticleParameterOptions[ParticleParameterOptions["OptionStrictContacts"] = 1] = "OptionStrictContacts";
-      ParticleParameterOptions[ParticleParameterOptions["OptionDrawShapes"] = 2] = "OptionDrawShapes";
-      ParticleParameterOptions[ParticleParameterOptions["OptionDrawParticles"] = 4] = "OptionDrawParticles";
-      ParticleParameterOptions[ParticleParameterOptions["OptionDrawJoints"] = 8] = "OptionDrawJoints";
-      ParticleParameterOptions[ParticleParameterOptions["OptionDrawAABBs"] = 16] = "OptionDrawAABBs";
-      ParticleParameterOptions[ParticleParameterOptions["OptionDrawContactPoints"] = 32] = "OptionDrawContactPoints";
-      ParticleParameterOptions[ParticleParameterOptions["OptionDrawContactNormals"] = 64] = "OptionDrawContactNormals";
-      ParticleParameterOptions[ParticleParameterOptions["OptionDrawContactImpulse"] = 128] = "OptionDrawContactImpulse";
-      ParticleParameterOptions[ParticleParameterOptions["OptionDrawFrictionImpulse"] = 256] = "OptionDrawFrictionImpulse";
-      ParticleParameterOptions[ParticleParameterOptions["OptionDrawCOMs"] = 512] = "OptionDrawCOMs";
-      ParticleParameterOptions[ParticleParameterOptions["OptionDrawStats"] = 1024] = "OptionDrawStats";
-      ParticleParameterOptions[ParticleParameterOptions["OptionDrawProfile"] = 2048] = "OptionDrawProfile";
-  })(exports.ParticleParameterOptions || (exports.ParticleParameterOptions = {}));
-  class ParticleParameterValue {
-      constructor(...args) {
-          /**
-           * ParticleParameterValue associated with the parameter.
-           */
-          this.value = 0;
-          /**
-           * Any global (non particle-specific) options associated with
-           * this parameter
-           */
-          this.options = 0;
-          /**
-           * Name to display when this parameter is selected.
-           */
-          this.name = "";
-          if (args[0] instanceof ParticleParameterValue) {
-              this.Copy(args[0]);
-          }
-          else {
-              this.value = args[0];
-              this.options = args[1];
-              this.name = args[2];
-          }
-      }
-      Copy(other) {
-          this.value = other.value;
-          this.options = other.options;
-          this.name = other.name;
-          return this;
-      }
-  }
-  class ParticleParameterDefinition {
-      /**
-       * Particle parameter definition.
-       */
-      constructor(values, numValues = values.length) {
-          this.numValues = 0;
-          this.values = values;
-          this.numValues = numValues;
-      }
-      CalculateValueMask() {
-          let mask = 0;
-          for (let i = 0; i < this.numValues; i++) {
-              mask |= this.values[i].value;
-          }
-          return mask;
-      }
-  }
-  class ParticleParameter {
-      constructor() {
-          this.m_index = 0;
-          this.m_changed = false;
-          this.m_restartOnChange = false;
-          this.m_value = null;
-          this.m_definition = ParticleParameter.k_defaultDefinition;
-          this.m_definitionCount = 0;
-          this.m_valueCount = 0;
-          this.Reset();
-      }
-      Reset() {
-          this.m_restartOnChange = true;
-          this.m_index = 0;
-          this.SetDefinition(ParticleParameter.k_defaultDefinition);
-          this.Set(0);
-      }
-      SetDefinition(definition, definitionCount = definition.length) {
-          this.m_definition = definition;
-          this.m_definitionCount = definitionCount;
-          this.m_valueCount = 0;
-          for (let i = 0; i < this.m_definitionCount; ++i) {
-              this.m_valueCount += this.m_definition[i].numValues;
-          }
-          // Refresh the selected value.
-          this.Set(this.Get());
-      }
-      Get() {
-          return this.m_index;
-      }
-      Set(index) {
-          this.m_changed = this.m_index !== index;
-          this.m_index = this.m_valueCount ? index % this.m_valueCount : index;
-          this.m_value = this.FindParticleParameterValue();
-          // DEBUG: b2.Assert(this.m_value !== null);
-      }
-      Increment() {
-          const index = this.Get();
-          this.Set(index >= this.m_valueCount ? 0 : index + 1);
-      }
-      Decrement() {
-          const index = this.Get();
-          this.Set(index === 0 ? this.m_valueCount - 1 : index - 1);
-      }
-      Changed(restart) {
-          const changed = this.m_changed;
-          this.m_changed = false;
-          if (restart) {
-              restart[0] = changed && this.GetRestartOnChange();
-          }
-          return changed;
-      }
-      GetValue() {
-          if (this.m_value === null) {
-              throw new Error();
-          }
-          return this.m_value.value;
-      }
-      GetName() {
-          if (this.m_value === null) {
-              throw new Error();
-          }
-          return this.m_value.name;
-      }
-      GetOptions() {
-          if (this.m_value === null) {
-              throw new Error();
-          }
-          return this.m_value.options;
-      }
-      SetRestartOnChange(enable) {
-          this.m_restartOnChange = enable;
-      }
-      GetRestartOnChange() {
-          return this.m_restartOnChange;
-      }
-      FindIndexByValue(value) {
-          let index = 0;
-          for (let i = 0; i < this.m_definitionCount; ++i) {
-              const definition = this.m_definition[i];
-              const numValues = definition.numValues;
-              for (let j = 0; j < numValues; ++j, ++index) {
-                  if (definition.values[j].value === value) {
-                      return index;
-                  }
-              }
-          }
-          return -1;
-      }
-      FindParticleParameterValue() {
-          let start = 0;
-          const index = this.Get();
-          for (let i = 0; i < this.m_definitionCount; ++i) {
-              const definition = this.m_definition[i];
-              const end = start + definition.numValues;
-              if (index >= start && index < end) {
-                  return definition.values[index - start];
-              }
-              start = end;
-          }
-          return null;
-      }
-  }
-  ParticleParameter.k_DefaultOptions = exports.ParticleParameterOptions.OptionDrawShapes | exports.ParticleParameterOptions.OptionDrawParticles;
-  ParticleParameter.k_particleTypes = [
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_waterParticle, ParticleParameter.k_DefaultOptions, "water"),
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_waterParticle, ParticleParameter.k_DefaultOptions | exports.ParticleParameterOptions.OptionStrictContacts, "water (strict)"),
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_springParticle, ParticleParameter.k_DefaultOptions, "spring"),
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_elasticParticle, ParticleParameter.k_DefaultOptions, "elastic"),
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_viscousParticle, ParticleParameter.k_DefaultOptions, "viscous"),
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_powderParticle, ParticleParameter.k_DefaultOptions, "powder"),
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_tensileParticle, ParticleParameter.k_DefaultOptions, "tensile"),
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_colorMixingParticle, ParticleParameter.k_DefaultOptions, "color mixing"),
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_wallParticle, ParticleParameter.k_DefaultOptions, "wall"),
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_barrierParticle | b2__namespace.ParticleFlag.b2_wallParticle, ParticleParameter.k_DefaultOptions, "barrier"),
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_staticPressureParticle, ParticleParameter.k_DefaultOptions, "static pressure"),
-      new ParticleParameterValue(b2__namespace.ParticleFlag.b2_waterParticle, ParticleParameter.k_DefaultOptions | exports.ParticleParameterOptions.OptionDrawAABBs, "water (bounding boxes)"),
-  ];
-  ParticleParameter.k_defaultDefinition = [
-      new ParticleParameterDefinition(ParticleParameter.k_particleTypes),
-  ];
   // #endif
 
   // MIT License
@@ -910,28 +338,6 @@
       }
   }
   const g_testEntries = [];
-  function RegisterTest(category, name, fcn) {
-      return g_testEntries.push(new TestEntry(category, name, fcn));
-  }
-  class DestructionListener extends b2__namespace.DestructionListener {
-      constructor(test) {
-          super();
-          this.test = test;
-      }
-      SayGoodbyeJoint(joint) {
-          if (this.test.m_mouseJoint === joint) {
-              this.test.m_mouseJoint = null;
-          }
-          else {
-              this.test.JointDestroyed(joint);
-          }
-      }
-      SayGoodbyeFixture(fixture) { }
-      // #if B2_ENABLE_PARTICLE
-      SayGoodbyeParticleGroup(group) {
-          this.test.ParticleGroupDestroyed(group);
-      }
-  }
   class ContactPoint {
       constructor() {
           this.normal = new b2__namespace.Vec2();
@@ -942,33 +348,7 @@
           this.separation = 0;
       }
   }
-  // #if B2_ENABLE_PARTICLE
-  class QueryCallback2 extends b2__namespace.QueryCallback {
-      constructor(particleSystem, shape, velocity) {
-          super();
-          this.m_particleSystem = particleSystem;
-          this.m_shape = shape;
-          this.m_velocity = velocity;
-      }
-      ReportFixture(fixture) {
-          return false;
-      }
-      ReportParticle(particleSystem, index) {
-          if (particleSystem !== this.m_particleSystem) {
-              return false;
-          }
-          const xf = b2__namespace.Transform.IDENTITY;
-          const p = this.m_particleSystem.GetPositionBuffer()[index];
-          if (this.m_shape.TestPoint(xf, p)) {
-              const v = this.m_particleSystem.GetVelocityBuffer()[index];
-              v.Copy(this.m_velocity);
-          }
-          return true;
-      }
-  }
-  // #endif
   class Test extends b2__namespace.ContactListener {
-      // #endif
       constructor() {
           super();
           // #endif
@@ -989,9 +369,6 @@
           this.m_maxProfile = new b2__namespace.Profile();
           this.m_totalProfile = new b2__namespace.Profile();
           // #if B2_ENABLE_PARTICLE
-          this.m_particleParameters = null;
-          this.m_particleParameterDef = null;
-          // #if B2_ENABLE_PARTICLE
           const particleSystemDef = new b2__namespace.ParticleSystemDef();
           // #endif
           const gravity = new b2__namespace.Vec2(0, -10);
@@ -1002,8 +379,6 @@
           this.m_bomb = null;
           this.m_textLine = 30;
           this.m_mouseJoint = null;
-          this.m_destructionListener = new DestructionListener(this);
-          this.m_world.SetDestructionListener(this.m_destructionListener);
           this.m_world.SetContactListener(this);
           this.m_world.SetDebugDraw(g_debugDraw);
           // #if B2_ENABLE_PARTICLE
@@ -1045,15 +420,6 @@
           }
       }
       PostSolve(contact, impulse) { }
-      Keyboard(key) { }
-      KeyboardUp(key) { }
-      SetTextLine(line) {
-          this.m_textLine = line;
-      }
-      DrawTitle(title) {
-          g_debugDraw.DrawString(5, DRAW_STRING_NEW_LINE, title);
-          this.m_textLine = 3 * DRAW_STRING_NEW_LINE;
-      }
       MouseDown(p) {
           this.m_mouseWorld.Copy(p);
           // #if B2_ENABLE_PARTICLE
@@ -1130,11 +496,6 @@
           if (this.m_mouseJoint) {
               this.m_mouseJoint.SetTarget(p);
           }
-      }
-      LaunchBomb() {
-          const p = new b2__namespace.Vec2(b2__namespace.RandomRange(-15, 15), 30);
-          const v = b2__namespace.Vec2.MulSV(-5, p, new b2__namespace.Vec2());
-          this.LaunchBombAt(p, v);
       }
       LaunchBombAt(position, velocity) {
           if (this.m_bomb) {
@@ -1254,60 +615,6 @@
               this.m_totalProfile.solveTOI += p.solveTOI;
               this.m_totalProfile.broadphase += p.broadphase;
           }
-          if (settings.m_drawProfile) {
-              const p = this.m_world.GetProfile();
-              const aveProfile = new b2__namespace.Profile();
-              if (this.m_stepCount > 0) {
-                  const scale = 1 / this.m_stepCount;
-                  aveProfile.step = scale * this.m_totalProfile.step;
-                  aveProfile.collide = scale * this.m_totalProfile.collide;
-                  aveProfile.solve = scale * this.m_totalProfile.solve;
-                  aveProfile.solveInit = scale * this.m_totalProfile.solveInit;
-                  aveProfile.solveVelocity = scale * this.m_totalProfile.solveVelocity;
-                  aveProfile.solvePosition = scale * this.m_totalProfile.solvePosition;
-                  aveProfile.solveTOI = scale * this.m_totalProfile.solveTOI;
-                  aveProfile.broadphase = scale * this.m_totalProfile.broadphase;
-              }
-              g_debugDraw.DrawString(5, this.m_textLine, "step [ave] (max) = " + p.step.toFixed(2) + " [" + aveProfile.step.toFixed(2) + "] (" + this.m_maxProfile.step.toFixed(2) + ")");
-              this.m_textLine += DRAW_STRING_NEW_LINE;
-              g_debugDraw.DrawString(5, this.m_textLine, "collide [ave] (max) = " + p.collide.toFixed(2) + " [" + aveProfile.collide.toFixed(2) + "] (" + this.m_maxProfile.collide.toFixed(2) + ")");
-              this.m_textLine += DRAW_STRING_NEW_LINE;
-              g_debugDraw.DrawString(5, this.m_textLine, "solve [ave] (max) = " + p.solve.toFixed(2) + " [" + aveProfile.solve.toFixed(2) + "] (" + this.m_maxProfile.solve.toFixed(2) + ")");
-              this.m_textLine += DRAW_STRING_NEW_LINE;
-              g_debugDraw.DrawString(5, this.m_textLine, "solve init [ave] (max) = " + p.solveInit.toFixed(2) + " [" + aveProfile.solveInit.toFixed(2) + "] (" + this.m_maxProfile.solveInit.toFixed(2) + ")");
-              this.m_textLine += DRAW_STRING_NEW_LINE;
-              g_debugDraw.DrawString(5, this.m_textLine, "solve velocity [ave] (max) = " + p.solveVelocity.toFixed(2) + " [" + aveProfile.solveVelocity.toFixed(2) + "] (" + this.m_maxProfile.solveVelocity.toFixed(2) + ")");
-              this.m_textLine += DRAW_STRING_NEW_LINE;
-              g_debugDraw.DrawString(5, this.m_textLine, "solve position [ave] (max) = " + p.solvePosition.toFixed(2) + " [" + aveProfile.solvePosition.toFixed(2) + "] (" + this.m_maxProfile.solvePosition.toFixed(2) + ")");
-              this.m_textLine += DRAW_STRING_NEW_LINE;
-              g_debugDraw.DrawString(5, this.m_textLine, "solveTOI [ave] (max) = " + p.solveTOI.toFixed(2) + " [" + aveProfile.solveTOI.toFixed(2) + "] (" + this.m_maxProfile.solveTOI.toFixed(2) + ")");
-              this.m_textLine += DRAW_STRING_NEW_LINE;
-              g_debugDraw.DrawString(5, this.m_textLine, "broad-phase [ave] (max) = " + p.broadphase.toFixed(2) + " [" + aveProfile.broadphase.toFixed(2) + "] (" + this.m_maxProfile.broadphase.toFixed(2) + ")");
-              this.m_textLine += DRAW_STRING_NEW_LINE;
-          }
-          // #if B2_ENABLE_PARTICLE
-          if (this.m_mouseTracing && !this.m_mouseJoint) {
-              const delay = 0.1;
-              ///b2Vec2 acceleration = 2 / delay * (1 / delay * (m_mouseWorld - m_mouseTracerPosition) - m_mouseTracerVelocity);
-              const acceleration = new b2__namespace.Vec2();
-              acceleration.x = 2 / delay * (1 / delay * (this.m_mouseWorld.x - this.m_mouseTracerPosition.x) - this.m_mouseTracerVelocity.x);
-              acceleration.y = 2 / delay * (1 / delay * (this.m_mouseWorld.y - this.m_mouseTracerPosition.y) - this.m_mouseTracerVelocity.y);
-              ///m_mouseTracerVelocity += timeStep * acceleration;
-              this.m_mouseTracerVelocity.SelfMulAdd(timeStep, acceleration);
-              ///m_mouseTracerPosition += timeStep * m_mouseTracerVelocity;
-              this.m_mouseTracerPosition.SelfMulAdd(timeStep, this.m_mouseTracerVelocity);
-              const shape = new b2__namespace.CircleShape();
-              shape.m_p.Copy(this.m_mouseTracerPosition);
-              shape.m_radius = 2 * this.GetDefaultViewZoom();
-              ///QueryCallback2 callback(m_particleSystem, &shape, m_mouseTracerVelocity);
-              const callback = new QueryCallback2(this.m_particleSystem, shape, this.m_mouseTracerVelocity);
-              const aabb = new b2__namespace.AABB();
-              const xf = new b2__namespace.Transform();
-              xf.SetIdentity();
-              shape.ComputeAABB(aabb, xf, 0);
-              this.m_world.QueryAABB(callback, aabb);
-          }
-          // #endif
           if (this.m_bombSpawning) {
               const c = new b2__namespace.Color(0, 0, 1);
               g_debugDraw.DrawPoint(this.m_bombSpawnPoint, 4, c);
@@ -1352,107 +659,9 @@
       GetDefaultViewZoom() {
           return 1.0;
       }
-      /**
-       * Apply a preset range of colors to a particle group.
-       *
-       * A different color out of k_ParticleColors is applied to each
-       * particlesPerColor particles in the specified group.
-       *
-       * If particlesPerColor is 0, the particles in the group are
-       * divided into k_ParticleColorsCount equal sets of colored
-       * particles.
-       */
-      ColorParticleGroup(group, particlesPerColor) {
-          // DEBUG: b2.Assert(group !== null);
-          const colorBuffer = this.m_particleSystem.GetColorBuffer();
-          const particleCount = group.GetParticleCount();
-          const groupStart = group.GetBufferIndex();
-          const groupEnd = particleCount + groupStart;
-          const colorCount = Test.k_ParticleColors.length;
-          if (!particlesPerColor) {
-              particlesPerColor = Math.floor(particleCount / colorCount);
-              if (!particlesPerColor) {
-                  particlesPerColor = 1;
-              }
-          }
-          for (let i = groupStart; i < groupEnd; i++) {
-              ///colorBuffer[i].Copy(box2d.Testbed.Test.k_ParticleColors[Math.floor(i / particlesPerColor) % colorCount]);
-              colorBuffer[i] = Test.k_ParticleColors[Math.floor(i / particlesPerColor) % colorCount].Clone();
-          }
-      }
-      /**
-       * Remove particle parameters matching "filterMask" from the set
-       * of particle parameters available for this test.
-       */
-      InitializeParticleParameters(filterMask) {
-          const defaultNumValues = ParticleParameter.k_defaultDefinition[0].numValues;
-          const defaultValues = ParticleParameter.k_defaultDefinition[0].values;
-          ///  m_particleParameters = new ParticleParameter::Value[defaultNumValues];
-          this.m_particleParameters = [];
-          // Disable selection of wall and barrier particle types.
-          let numValues = 0;
-          for (let i = 0; i < defaultNumValues; i++) {
-              if (defaultValues[i].value & filterMask) {
-                  continue;
-              }
-              ///memcpy(&m_particleParameters[numValues], &defaultValues[i], sizeof(defaultValues[0]));
-              this.m_particleParameters[numValues] = new ParticleParameterValue(defaultValues[i]);
-              numValues++;
-          }
-          this.m_particleParameterDef = new ParticleParameterDefinition(this.m_particleParameters, numValues);
-          ///m_particleParameterDef.values = m_particleParameters;
-          ///m_particleParameterDef.numValues = numValues;
-          Test.SetParticleParameters([this.m_particleParameterDef], 1);
-      }
-      /**
-       * Restore default particle parameters.
-       */
-      RestoreParticleParameters() {
-          if (this.m_particleParameters) {
-              Test.SetParticleParameters(ParticleParameter.k_defaultDefinition, 1);
-              ///  delete [] m_particleParameters;
-              this.m_particleParameters = null;
-          }
-      }
-      /**
-       * Set whether to restart the test on particle parameter
-       * changes. This parameter is re-enabled when the test changes.
-       */
-      static SetRestartOnParticleParameterChange(enable) {
-          Test.particleParameter.SetRestartOnChange(enable);
-      }
-      /**
-       * Set the currently selected particle parameter value.  This
-       * value must match one of the values in
-       * Main::k_particleTypes or one of the values referenced by
-       * particleParameterDef passed to SetParticleParameters().
-       */
-      static SetParticleParameterValue(value) {
-          const index = Test.particleParameter.FindIndexByValue(value);
-          // If the particle type isn't found, so fallback to the first entry in the
-          // parameter.
-          Test.particleParameter.Set(index >= 0 ? index : 0);
-          return Test.particleParameter.GetValue();
-      }
-      /**
-       * Get the currently selected particle parameter value and
-       * enable particle parameter selection arrows on Android.
-       */
-      static GetParticleParameterValue() {
-          // Enable display of particle type selection arrows.
-          Test.fullscreenUI.SetParticleParameterSelectionEnabled(true);
-          return Test.particleParameter.GetValue();
-      }
-      /**
-       * Override the default particle parameters for the test.
-       */
-      static SetParticleParameters(particleParameterDef, particleParameterDefCount = particleParameterDef.length) {
-          Test.particleParameter.SetDefinition(particleParameterDef, particleParameterDefCount);
-      }
   }
   // #if B2_ENABLE_PARTICLE
   Test.fullscreenUI = new FullScreenUI();
-  Test.particleParameter = new ParticleParameter();
   // #endif
   Test.k_maxContactPoints = 2048;
   Test.PreSolve_s_state1 = [ /*b2.maxManifoldPoints*/];
@@ -1512,70 +721,13 @@
               }
           }
       }
-      Keyboard(key) {
-          switch (key) {
-              case ",":
-                  if (this.m_bullet) {
-                      this.m_world.DestroyBody(this.m_bullet);
-                      this.m_bullet = null;
-                  }
-                  {
-                      const shape = new b2__namespace.CircleShape();
-                      shape.m_radius = 0.25;
-                      const fd = new b2__namespace.FixtureDef();
-                      fd.shape = shape;
-                      fd.density = 20.0;
-                      fd.restitution = 0.05;
-                      const bd = new b2__namespace.BodyDef();
-                      bd.type = b2__namespace.BodyType.b2_dynamicBody;
-                      bd.bullet = true;
-                      bd.position.Set(-31.0, 5.0);
-                      this.m_bullet = this.m_world.CreateBody(bd);
-                      this.m_bullet.CreateFixture(fd);
-                      this.m_bullet.SetLinearVelocity(new b2__namespace.Vec2(400.0, 0.0));
-                  }
-                  break;
-              case "b":
-                  b2__namespace.set_g_blockSolve(!b2__namespace.get_g_blockSolve());
-                  break;
-          }
-      }
-      Step(settings) {
-          super.Step(settings);
-          g_debugDraw.DrawString(5, this.m_textLine, "Press: (,) to launch a bullet.");
-          this.m_textLine += DRAW_STRING_NEW_LINE;
-          // testbed.g_debugDraw.DrawString(5, this.m_textLine, `Blocksolve = ${(b2.blockSolve) ? (1) : (0)}`);
-          //if (this.m_stepCount === 300)
-          //{
-          //  if (this.m_bullet !== null)
-          //  {
-          //    this.m_world.DestroyBody(this.m_bullet);
-          //    this.m_bullet = null;
-          //  }
-          //  {
-          //    const shape = new b2.CircleShape();
-          //    shape.m_radius = 0.25;
-          //    const fd = new b2.FixtureDef();
-          //    fd.shape = shape;
-          //    fd.density = 20.0;
-          //    fd.restitution = 0.05;
-          //    const bd = new b2.BodyDef();
-          //    bd.type = b2.BodyType.b2_dynamicBody;
-          //    bd.bullet = true;
-          //    bd.position.Set(-31.0, 5.0);
-          //    this.m_bullet = this.m_world.CreateBody(bd);
-          //    this.m_bullet.CreateFixture(fd);
-          //    this.m_bullet.SetLinearVelocity(new b2.Vec2(400.0, 0.0));
-          //  }
-          //}
-      }
       static Create() {
           return new BoxStack();
       }
   }
   BoxStack.e_columnCount = 1;
   BoxStack.e_rowCount = 15;
-  RegisterTest("Stacking", "Boxes", BoxStack.Create);
+  g_testEntries.push(new TestEntry("Stacking", "Boxes", BoxStack.Create));
 
   // MIT License
   class Main {
@@ -1586,38 +738,8 @@
           this.m_fps = 0;
           this.m_settings = new Settings();
           this.m_shift = false;
-          this.m_ctrl = false;
-          this.m_lMouseDown = false;
-          this.m_rMouseDown = false;
-          this.m_projection0 = new b2__namespace.Vec2();
-          this.m_viewCenter0 = new b2__namespace.Vec2();
-          this.m_demo_mode = false;
           this.m_demo_time = 0;
-          this.m_max_demo_time = 1000 * 10;
           this.m_ctx = null;
-          ///public RollCamera(roll: number): void {
-          ///  const angle: number = g_camera.m_roll.GetAngle();
-          ///  g_camera.m_roll.SetAngle(angle + roll);
-          ///}
-          this.m_mouse = new b2__namespace.Vec2();
-          const fps_div = this.m_fps_div = document.body.appendChild(document.createElement("div"));
-          fps_div.style.position = "absolute";
-          fps_div.style.left = "0px";
-          fps_div.style.bottom = "0px";
-          fps_div.style.backgroundColor = "rgba(0,0,255,0.75)";
-          fps_div.style.color = "white";
-          fps_div.style.font = "10pt Courier New";
-          fps_div.style.zIndex = "256";
-          fps_div.innerHTML = "FPS";
-          const debug_div = this.m_debug_div = document.body.appendChild(document.createElement("div"));
-          debug_div.style.position = "absolute";
-          debug_div.style.left = "0px";
-          debug_div.style.bottom = "0px";
-          debug_div.style.backgroundColor = "rgba(0,0,255,0.75)";
-          debug_div.style.color = "white";
-          debug_div.style.font = "10pt Courier New";
-          debug_div.style.zIndex = "256";
-          debug_div.innerHTML = "";
           document.body.style.backgroundColor = "rgba(51, 51, 51, 1.0)";
           const main_div = document.body.appendChild(document.createElement("div"));
           main_div.style.position = "absolute"; // relative to document.body
@@ -1631,10 +753,6 @@
           window.addEventListener("resize", (e) => { resize_main_div(); });
           window.addEventListener("orientationchange", (e) => { resize_main_div(); });
           resize_main_div();
-          const title_div = main_div.appendChild(document.createElement("div"));
-          title_div.style.textAlign = "center";
-          title_div.style.color = "grey";
-          title_div.innerHTML = "Box2D Testbed version " + b2__namespace.version.toString();
           const view_div = main_div.appendChild(document.createElement("div"));
           const canvas_div = this.m_canvas_div = view_div.appendChild(document.createElement("div"));
           canvas_div.style.position = "absolute"; // relative to view_div
@@ -1656,27 +774,6 @@
           window.addEventListener("orientationchange", (e) => { resize_canvas(); });
           resize_canvas();
           g_debugDraw.m_ctx = this.m_ctx = this.m_canvas_2d.getContext("2d");
-          // tests select box
-          const test_select = document.createElement("select");
-          const test_options = [];
-          for (let i = 0; i < g_testEntries.length; ++i) {
-              const option = document.createElement("option");
-              option.text = `${g_testEntries[i].category}:${g_testEntries[i].name}`;
-              option.value = i.toString();
-              test_options.push(option);
-          }
-          test_options.sort((a, b) => a.text.localeCompare(b.text));
-          for (let i = 0; i < test_options.length; ++i) {
-              const option = test_options[i];
-              test_select.add(option);
-          }
-          test_select.selectedIndex = this.m_settings.m_testIndex = 0;
-          test_select.addEventListener("change", (e) => {
-              this.m_settings.m_testIndex = test_select.selectedIndex;
-              this.LoadTest();
-          });
-          this.m_test_select = test_select;
-          this.m_test_options = test_options;
           // simulation number inputs
           // draw checkbox inputs
           // simulation buttons
@@ -1690,96 +787,19 @@
           g_camera.m_center.Set(0, 20 * g_camera.m_zoom);
           ///g_camera.m_roll.SetAngle(b2.DegToRad(0));
       }
-      MoveCamera(move) {
-          const position = g_camera.m_center.Clone();
-          ///move.SelfRotate(g_camera.m_roll.GetAngle());
-          position.SelfAdd(move);
-          g_camera.m_center.Copy(position);
-      }
-      HandleMouseMove(e) {
-          const element = new b2__namespace.Vec2(e.clientX, e.clientY);
-          const world = g_camera.ConvertScreenToWorld(element, new b2__namespace.Vec2());
-          this.m_mouse.Copy(element);
-          if (this.m_lMouseDown) {
-              if (this.m_test) {
-                  this.m_test.MouseMove(world);
-              }
-          }
-          if (this.m_rMouseDown) {
-              // m_center = viewCenter0 - (projection - projection0);
-              const projection = g_camera.ConvertElementToProjection(element, new b2__namespace.Vec2());
-              const diff = b2__namespace.Vec2.SubVV(projection, this.m_projection0, new b2__namespace.Vec2());
-              const center = b2__namespace.Vec2.SubVV(this.m_viewCenter0, diff, new b2__namespace.Vec2());
-              g_camera.m_center.Copy(center);
-          }
-      }
-      HandleTouchStart(e) {
-          const element = new b2__namespace.Vec2(e.touches[0].clientX, e.touches[0].clientY);
-          const world = g_camera.ConvertScreenToWorld(element, new b2__namespace.Vec2());
-          if (this.m_test) {
-              this.m_test.MouseDown(world);
-          }
-          e.preventDefault();
-      }
-      HandleTouchEnd(e) {
-          if (this.m_test) {
-              this.m_test.MouseUp(this.m_test.m_mouseWorld);
-          }
-          e.preventDefault();
-      }
       UpdateTest(time_elapsed) {
-          if (this.m_demo_mode) {
-              this.m_demo_time += time_elapsed;
-              if (this.m_demo_time > this.m_max_demo_time) {
-                  this.IncrementTest();
-              }
-              // const str: string = ((500 + this.m_max_demo_time - this.m_demo_time) / 1000).toFixed(0).toString();
-              // this.m_demo_button.value = str;
-          }
-      }
-      DecrementTest() {
-          if (this.m_settings.m_testIndex <= 0) {
-              this.m_settings.m_testIndex = this.m_test_options.length;
-          }
-          this.m_settings.m_testIndex--;
-          this.m_test_select.selectedIndex = this.m_settings.m_testIndex;
-          this.LoadTest();
-      }
-      IncrementTest() {
-          this.m_settings.m_testIndex++;
-          if (this.m_settings.m_testIndex >= this.m_test_options.length) {
-              this.m_settings.m_testIndex = 0;
-          }
-          this.m_test_select.selectedIndex = this.m_settings.m_testIndex;
-          this.LoadTest();
+          this.m_demo_time += time_elapsed;
       }
       LoadTest(restartTest = false) {
           // #if B2_ENABLE_PARTICLE
           Test.fullscreenUI.Reset();
-          if (!restartTest) {
-              Test.particleParameter.Reset();
-          }
           // #endif
           this.m_demo_time = 0;
-          // #if B2_ENABLE_PARTICLE
-          if (this.m_test) {
-              this.m_test.RestoreParticleParameters();
-          }
           // #endif
-          this.m_test = g_testEntries[parseInt(this.m_test_options[this.m_settings.m_testIndex].value)].createFcn();
+          this.m_test = g_testEntries[0].createFcn();
           if (!restartTest) {
               this.HomeCamera();
           }
-      }
-      Pause() {
-          this.m_settings.m_pause = !this.m_settings.m_pause;
-      }
-      SingleStep() {
-          this.m_settings.m_pause = true;
-          this.m_settings.m_singleStep = true;
-      }
-      ToggleDemo() {
-          this.m_demo_mode = !this.m_demo_mode;
       }
       SimulationLoop(time) {
           this.m_time_last = this.m_time_last || time;
@@ -1794,12 +814,9 @@
               this.m_fps = (this.m_fps_frames * 1000) / this.m_fps_time;
               this.m_fps_frames = 0;
               this.m_fps_time = 0;
-              this.m_fps_div.innerHTML = this.m_fps.toFixed(1).toString();
           }
           if (time_elapsed > 0) {
               const ctx = this.m_ctx;
-              // #if B2_ENABLE_PARTICLE
-              const restartTest = [false];
               // #endif
               if (ctx) {
                   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -1823,29 +840,7 @@
                   if (this.m_test) {
                       this.m_test.Step(this.m_settings);
                   }
-                  // #if B2_ENABLE_PARTICLE
-                  // Update the state of the particle parameter.
-                  Test.particleParameter.Changed(restartTest);
-                  // #endif
-                  // #if B2_ENABLE_PARTICLE
-                  let msg = this.m_test_options[this.m_settings.m_testIndex].text;
-                  if (Test.fullscreenUI.GetParticleParameterSelectionEnabled()) {
-                      msg += " : ";
-                      msg += Test.particleParameter.GetName();
-                  }
-                  if (this.m_test) {
-                      this.m_test.DrawTitle(msg);
-                  }
-                  // #else
-                  // if (this.m_test) { this.m_test.DrawTitle(this.m_test_options[this.m_settings.m_testIndex].text); }
-                  // #endif
-                  // ctx.strokeStyle = "yellow";
-                  // ctx.strokeRect(mouse_world.x - 0.5, mouse_world.y - 0.5, 1.0, 1.0);
                   ctx.restore();
-              }
-              // #if B2_ENABLE_PARTICLE
-              if (restartTest[0]) {
-                  this.LoadTest(true);
               }
               // #endif
               this.UpdateTest(time_elapsed);
@@ -1857,16 +852,9 @@
   exports.ContactPoint = ContactPoint;
   exports.DRAW_STRING_NEW_LINE = DRAW_STRING_NEW_LINE;
   exports.DebugDraw = DebugDraw;
-  exports.DestructionListener = DestructionListener;
-  exports.EmittedParticleCallback = EmittedParticleCallback;
   exports.FullScreenUI = FullScreenUI;
   exports.Main = Main;
-  exports.ParticleParameter = ParticleParameter;
-  exports.ParticleParameterDefinition = ParticleParameterDefinition;
-  exports.ParticleParameterValue = ParticleParameterValue;
-  exports.RadialEmitter = RadialEmitter;
   exports.RandomFloat = RandomFloat;
-  exports.RegisterTest = RegisterTest;
   exports.Settings = Settings;
   exports.Test = Test;
   exports.TestEntry = TestEntry;

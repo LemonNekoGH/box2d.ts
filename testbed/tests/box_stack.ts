@@ -22,6 +22,7 @@
 
 import * as b2 from "@box2d";
 import * as testbed from "@testbed";
+import {g_testEntries, TestEntry} from "@testbed";
 
 export class BoxStack extends testbed.Test {
   public static readonly e_columnCount = 1;
@@ -82,78 +83,9 @@ export class BoxStack extends testbed.Test {
     }
   }
 
-  public Keyboard(key: string) {
-    switch (key) {
-      case ",":
-        if (this.m_bullet) {
-          this.m_world.DestroyBody(this.m_bullet);
-          this.m_bullet = null;
-        }
-
-        {
-          const shape = new b2.CircleShape();
-          shape.m_radius = 0.25;
-
-          const fd = new b2.FixtureDef();
-          fd.shape = shape;
-          fd.density = 20.0;
-          fd.restitution = 0.05;
-
-          const bd = new b2.BodyDef();
-          bd.type = b2.BodyType.b2_dynamicBody;
-          bd.bullet = true;
-          bd.position.Set(-31.0, 5.0);
-
-          this.m_bullet = this.m_world.CreateBody(bd);
-          this.m_bullet.CreateFixture(fd);
-
-          this.m_bullet.SetLinearVelocity(new b2.Vec2(400.0, 0.0));
-        }
-        break;
-      case "b":
-        b2.set_g_blockSolve(!b2.get_g_blockSolve());
-        break;
-    }
-  }
-
-  public Step(settings: testbed.Settings): void {
-    super.Step(settings);
-    testbed.g_debugDraw.DrawString(5, this.m_textLine, "Press: (,) to launch a bullet.");
-    this.m_textLine += testbed.DRAW_STRING_NEW_LINE;
-    // testbed.g_debugDraw.DrawString(5, this.m_textLine, `Blocksolve = ${(b2.blockSolve) ? (1) : (0)}`);
-    //if (this.m_stepCount === 300)
-    //{
-    //  if (this.m_bullet !== null)
-    //  {
-    //    this.m_world.DestroyBody(this.m_bullet);
-    //    this.m_bullet = null;
-    //  }
-
-    //  {
-    //    const shape = new b2.CircleShape();
-    //    shape.m_radius = 0.25;
-
-    //    const fd = new b2.FixtureDef();
-    //    fd.shape = shape;
-    //    fd.density = 20.0;
-    //    fd.restitution = 0.05;
-
-    //    const bd = new b2.BodyDef();
-    //    bd.type = b2.BodyType.b2_dynamicBody;
-    //    bd.bullet = true;
-    //    bd.position.Set(-31.0, 5.0);
-
-    //    this.m_bullet = this.m_world.CreateBody(bd);
-    //    this.m_bullet.CreateFixture(fd);
-
-    //    this.m_bullet.SetLinearVelocity(new b2.Vec2(400.0, 0.0));
-    //  }
-    //}
-  }
-
   public static Create(): testbed.Test {
     return new BoxStack();
   }
 }
 
-export const testIndex: number = testbed.RegisterTest("Stacking", "Boxes", BoxStack.Create);
+g_testEntries.push(new TestEntry("Stacking", "Boxes", BoxStack.Create));

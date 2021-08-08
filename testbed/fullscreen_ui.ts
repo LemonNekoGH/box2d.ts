@@ -44,13 +44,6 @@ export class FullScreenUI {
   public SetParticleParameterSelectionEnabled(enable: boolean): void {
     this.m_particleParameterSelectionEnabled = enable;
   }
-
-  /**
-   * Get whether particle parameter selection is enabled.
-   */
-  public GetParticleParameterSelectionEnabled(): boolean {
-    return this.m_particleParameterSelectionEnabled;
-  }
 }
 
 // #endif

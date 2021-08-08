@@ -29,75 +29,6 @@ export class Camera {
   public m_zoom: number = 1;
   public m_width: number = 1280;
   public m_height: number = 800;
-
-  public ConvertScreenToWorld(screenPoint: b2.Vec2, out: b2.Vec2): b2.Vec2 {
-    return this.ConvertElementToWorld(screenPoint, out);
-  }
-
-  public ConvertWorldToScreen(worldPoint: b2.Vec2, out: b2.Vec2): b2.Vec2 {
-    return this.ConvertWorldToElement(worldPoint, out);
-  }
-
-  public ConvertViewportToElement(viewport: b2.Vec2, out: b2.Vec2): b2.Vec2 {
-    // 0,0 at center of canvas, x right and y up
-    const element_x: number = viewport.x + (0.5 * this.m_width);
-    const element_y: number = (0.5 * this.m_height) - viewport.y;
-    return out.Set(element_x, element_y);
-  }
-
-  public ConvertElementToViewport(element: b2.Vec2, out: b2.Vec2): b2.Vec2 {
-    // 0,0 at center of canvas, x right and y up
-    const viewport_x: number = element.x - (0.5 * this.m_width);
-    const viewport_y: number = (0.5 * this.m_height) - element.y;
-    return out.Set(viewport_x, viewport_y);
-  }
-
-  public ConvertProjectionToViewport(projection: b2.Vec2, out: b2.Vec2): b2.Vec2 {
-    const viewport: b2.Vec2 = out.Copy(projection);
-    b2.Vec2.MulSV(1 / this.m_zoom, viewport, viewport);
-    ///b2.Vec2.MulSV(this.m_extent, viewport, viewport);
-    b2.Vec2.MulSV(0.5 * this.m_height / this.m_extent, projection, projection);
-    return viewport;
-  }
-
-  public ConvertViewportToProjection(viewport: b2.Vec2, out: b2.Vec2): b2.Vec2 {
-    const projection: b2.Vec2 = out.Copy(viewport);
-    ///b2.Vec2.MulSV(1 / this.m_extent, projection, projection);
-    b2.Vec2.MulSV(2 * this.m_extent / this.m_height, projection, projection);
-    b2.Vec2.MulSV(this.m_zoom, projection, projection);
-    return projection;
-  }
-
-  public ConvertWorldToProjection(world: b2.Vec2, out: b2.Vec2): b2.Vec2 {
-    const projection: b2.Vec2 = out.Copy(world);
-    b2.Vec2.SubVV(projection, this.m_center, projection);
-    ///b2.Rot.MulTRV(this.m_roll, projection, projection);
-    return projection;
-  }
-
-  public ConvertProjectionToWorld(projection: b2.Vec2, out: b2.Vec2): b2.Vec2 {
-    const world: b2.Vec2 = out.Copy(projection);
-    ///b2.Rot.MulRV(this.m_roll, world, world);
-    b2.Vec2.AddVV(this.m_center, world, world);
-    return world;
-  }
-
-  public ConvertElementToWorld(element: b2.Vec2, out: b2.Vec2): b2.Vec2 {
-    const viewport: b2.Vec2 = this.ConvertElementToViewport(element, out);
-    const projection: b2.Vec2 = this.ConvertViewportToProjection(viewport, out);
-    return this.ConvertProjectionToWorld(projection, out);
-  }
-
-  public ConvertWorldToElement(world: b2.Vec2, out: b2.Vec2): b2.Vec2 {
-    const projection: b2.Vec2 = this.ConvertWorldToProjection(world, out);
-    const viewport: b2.Vec2 = this.ConvertProjectionToViewport(projection, out);
-    return this.ConvertViewportToElement(viewport, out);
-  }
-
-  public ConvertElementToProjection(element: b2.Vec2, out: b2.Vec2): b2.Vec2 {
-    const viewport: b2.Vec2 = this.ConvertElementToViewport(element, out);
-    return this.ConvertViewportToProjection(viewport, out);
-  }
 }
 
 // This class implements debug drawing callbacks that are invoked
@@ -261,51 +192,6 @@ export class DebugDraw extends b2.Draw {
       ctx.fillStyle = color.MakeStyleString();
       ctx.fillText(message, x, y);
       ctx.restore();
-    }
-  }
-
-  private static DrawStringWorld_s_p: b2.Vec2 = new b2.Vec2();
-  private static DrawStringWorld_s_cc: b2.Vec2 = new b2.Vec2();
-  private static DrawStringWorld_s_color: b2.Color = new b2.Color(0.5, 0.9, 0.5);
-  public DrawStringWorld(x: number, y: number, message: string): void {
-    const ctx: CanvasRenderingContext2D | null = this.m_ctx;
-    if (ctx) {
-      const p: b2.Vec2 = DebugDraw.DrawStringWorld_s_p.Set(x, y);
-
-      // world -> viewport
-      const vt: b2.Vec2 = g_camera.m_center;
-      b2.Vec2.SubVV(p, vt, p);
-      ///const vr = g_camera.m_roll;
-      ///b2.Rot.MulTRV(vr, p, p);
-      const vs: number = g_camera.m_zoom;
-      b2.Vec2.MulSV(1 / vs, p, p);
-
-      // viewport -> canvas
-      const cs: number = 0.5 * g_camera.m_height / g_camera.m_extent;
-      b2.Vec2.MulSV(cs, p, p);
-      p.y *= -1;
-      const cc: b2.Vec2 = DebugDraw.DrawStringWorld_s_cc.Set(0.5 * ctx.canvas.width, 0.5 * ctx.canvas.height);
-      b2.Vec2.AddVV(p, cc, p);
-
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.font = "15px DroidSans";
-      const color: b2.Color = DebugDraw.DrawStringWorld_s_color;
-      ctx.fillStyle = color.MakeStyleString();
-      ctx.fillText(message, p.x, p.y);
-      ctx.restore();
-    }
-  }
-
-  public DrawAABB(aabb: b2.AABB, color: b2.Color): void {
-    const ctx: CanvasRenderingContext2D | null = this.m_ctx;
-    if (ctx) {
-      ctx.strokeStyle = color.MakeStyleString();
-      const x: number = aabb.lowerBound.x;
-      const y: number = aabb.lowerBound.y;
-      const w: number = aabb.upperBound.x - aabb.lowerBound.x;
-      const h: number = aabb.upperBound.y - aabb.lowerBound.y;
-      ctx.strokeRect(x, y, w, h);
     }
   }
 }

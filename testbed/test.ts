@@ -25,7 +25,6 @@ import { Settings } from "./settings.js";
 import { g_debugDraw } from "./draw.js";
 // #if B2_ENABLE_PARTICLE
 import { FullScreenUI } from "./fullscreen_ui.js";
-import { ParticleParameter, ParticleParameterValue, ParticleParameterDefinition } from "./particle_parameter.js";
 // #endif
 
 export const DRAW_STRING_NEW_LINE: number = 16;
@@ -48,38 +47,7 @@ export class TestEntry {
   }
 }
 
-export const g_testEntries: TestEntry[] = [
-]
-
-export function RegisterTest(category: string, name: string, fcn: () => Test): number {
-  return g_testEntries.push(new TestEntry(category, name, fcn));
-}
-
-export class DestructionListener extends b2.DestructionListener {
-  public test: Test;
-
-  constructor(test: Test) {
-    super();
-
-    this.test = test;
-  }
-
-  public SayGoodbyeJoint(joint: b2.Joint): void {
-    if (this.test.m_mouseJoint === joint) {
-      this.test.m_mouseJoint = null;
-    } else {
-      this.test.JointDestroyed(joint);
-    }
-  }
-
-  public SayGoodbyeFixture(fixture: b2.Fixture): void {}
-
-  // #if B2_ENABLE_PARTICLE
-  public SayGoodbyeParticleGroup(group: b2.ParticleGroup) {
-    this.test.ParticleGroupDestroyed(group);
-  }
-  // #endif
-}
+export const g_testEntries: TestEntry[] = []
 
 export class ContactPoint {
   public fixtureA!: b2.Fixture;
@@ -92,41 +60,9 @@ export class ContactPoint {
   public separation: number = 0;
 }
 
-// #if B2_ENABLE_PARTICLE
-class QueryCallback2 extends b2.QueryCallback {
-  public m_particleSystem: b2.ParticleSystem;
-  public m_shape: b2.Shape;
-  public m_velocity: b2.Vec2;
-  constructor(particleSystem: b2.ParticleSystem, shape: b2.Shape, velocity: b2.Vec2) {
-    super();
-    this.m_particleSystem = particleSystem;
-    this.m_shape = shape;
-    this.m_velocity = velocity;
-  }
-
-  public ReportFixture(fixture: b2.Fixture): boolean {
-    return false;
-  }
-
-  public ReportParticle(particleSystem: b2.ParticleSystem, index: number): boolean {
-    if (particleSystem !== this.m_particleSystem) {
-      return false;
-    }
-    const xf = b2.Transform.IDENTITY;
-    const p = this.m_particleSystem.GetPositionBuffer()[index];
-    if (this.m_shape.TestPoint(xf, p)) {
-      const v = this.m_particleSystem.GetVelocityBuffer()[index];
-      v.Copy(this.m_velocity);
-    }
-    return true;
-  }
-}
-// #endif
-
 export class Test extends b2.ContactListener {
   // #if B2_ENABLE_PARTICLE
   public static readonly fullscreenUI = new FullScreenUI();
-  public static readonly particleParameter = new ParticleParameter();
   // #endif
   public static readonly k_maxContactPoints: number = 2048;
 
@@ -139,7 +75,6 @@ export class Test extends b2.ContactListener {
   public m_mouseJoint: b2.MouseJoint | null = null;
   public readonly m_points: ContactPoint[] = b2.MakeArray(Test.k_maxContactPoints, (i) => new ContactPoint());
   public m_pointCount: number = 0;
-  public m_destructionListener: DestructionListener;
   public readonly m_bombSpawnPoint: b2.Vec2 = new b2.Vec2();
   public m_bombSpawning: boolean = false;
   public readonly m_mouseWorld: b2.Vec2 = new b2.Vec2();
@@ -152,10 +87,6 @@ export class Test extends b2.ContactListener {
   public readonly m_maxProfile: b2.Profile = new b2.Profile();
   public readonly m_totalProfile: b2.Profile = new b2.Profile();
   public m_groundBody: b2.Body;
-  // #if B2_ENABLE_PARTICLE
-  public m_particleParameters: ParticleParameterValue[] | null = null;
-  public m_particleParameterDef: ParticleParameterDefinition | null = null;
-  // #endif
 
   constructor() {
     super();
@@ -172,8 +103,6 @@ export class Test extends b2.ContactListener {
     this.m_textLine = 30;
     this.m_mouseJoint = null;
 
-    this.m_destructionListener = new DestructionListener(this);
-    this.m_world.SetDestructionListener(this.m_destructionListener);
     this.m_world.SetContactListener(this);
     this.m_world.SetDebugDraw(g_debugDraw);
 
@@ -231,19 +160,6 @@ export class Test extends b2.ContactListener {
   }
 
   public PostSolve(contact: b2.Contact, impulse: b2.ContactImpulse): void {}
-
-  public Keyboard(key: string): void {}
-
-  public KeyboardUp(key: string): void {}
-
-  public SetTextLine(line: number): void {
-    this.m_textLine = line;
-  }
-
-  public DrawTitle(title: string): void {
-    g_debugDraw.DrawString(5, DRAW_STRING_NEW_LINE, title);
-    this.m_textLine = 3 * DRAW_STRING_NEW_LINE;
-  }
 
   public MouseDown(p: b2.Vec2): void {
     this.m_mouseWorld.Copy(p);
@@ -337,12 +253,6 @@ export class Test extends b2.ContactListener {
     if (this.m_mouseJoint) {
       this.m_mouseJoint.SetTarget(p);
     }
-  }
-
-  public LaunchBomb(): void {
-    const p: b2.Vec2 = new b2.Vec2(b2.RandomRange(-15, 15), 30);
-    const v: b2.Vec2 = b2.Vec2.MulSV(-5, p, new b2.Vec2());
-    this.LaunchBombAt(p, v);
   }
 
   public LaunchBombAt(position: b2.Vec2, velocity: b2.Vec2): void {
@@ -471,64 +381,6 @@ export class Test extends b2.ContactListener {
       this.m_totalProfile.broadphase += p.broadphase;
     }
 
-    if (settings.m_drawProfile) {
-      const p = this.m_world.GetProfile();
-
-      const aveProfile: b2.Profile = new b2.Profile();
-      if (this.m_stepCount > 0) {
-        const scale: number = 1 / this.m_stepCount;
-        aveProfile.step = scale * this.m_totalProfile.step;
-        aveProfile.collide = scale * this.m_totalProfile.collide;
-        aveProfile.solve = scale * this.m_totalProfile.solve;
-        aveProfile.solveInit = scale * this.m_totalProfile.solveInit;
-        aveProfile.solveVelocity = scale * this.m_totalProfile.solveVelocity;
-        aveProfile.solvePosition = scale * this.m_totalProfile.solvePosition;
-        aveProfile.solveTOI = scale * this.m_totalProfile.solveTOI;
-        aveProfile.broadphase = scale * this.m_totalProfile.broadphase;
-      }
-
-      g_debugDraw.DrawString(5, this.m_textLine, "step [ave] (max) = " + p.step.toFixed(2) + " [" + aveProfile.step.toFixed(2) + "] (" + this.m_maxProfile.step.toFixed(2) + ")");
-      this.m_textLine += DRAW_STRING_NEW_LINE;
-      g_debugDraw.DrawString(5, this.m_textLine, "collide [ave] (max) = " + p.collide.toFixed(2) + " [" + aveProfile.collide.toFixed(2) + "] (" + this.m_maxProfile.collide.toFixed(2) + ")");
-      this.m_textLine += DRAW_STRING_NEW_LINE;
-      g_debugDraw.DrawString(5, this.m_textLine, "solve [ave] (max) = " + p.solve.toFixed(2) + " [" + aveProfile.solve.toFixed(2) + "] (" + this.m_maxProfile.solve.toFixed(2) + ")");
-      this.m_textLine += DRAW_STRING_NEW_LINE;
-      g_debugDraw.DrawString(5, this.m_textLine, "solve init [ave] (max) = " + p.solveInit.toFixed(2) + " [" + aveProfile.solveInit.toFixed(2) + "] (" + this.m_maxProfile.solveInit.toFixed(2) + ")");
-      this.m_textLine += DRAW_STRING_NEW_LINE;
-      g_debugDraw.DrawString(5, this.m_textLine, "solve velocity [ave] (max) = " + p.solveVelocity.toFixed(2) + " [" + aveProfile.solveVelocity.toFixed(2) + "] (" + this.m_maxProfile.solveVelocity.toFixed(2) + ")");
-      this.m_textLine += DRAW_STRING_NEW_LINE;
-      g_debugDraw.DrawString(5, this.m_textLine, "solve position [ave] (max) = " + p.solvePosition.toFixed(2) + " [" + aveProfile.solvePosition.toFixed(2) + "] (" + this.m_maxProfile.solvePosition.toFixed(2) + ")");
-      this.m_textLine += DRAW_STRING_NEW_LINE;
-      g_debugDraw.DrawString(5, this.m_textLine, "solveTOI [ave] (max) = " + p.solveTOI.toFixed(2) + " [" + aveProfile.solveTOI.toFixed(2) + "] (" + this.m_maxProfile.solveTOI.toFixed(2) + ")");
-      this.m_textLine += DRAW_STRING_NEW_LINE;
-      g_debugDraw.DrawString(5, this.m_textLine, "broad-phase [ave] (max) = " + p.broadphase.toFixed(2) + " [" + aveProfile.broadphase.toFixed(2) + "] (" + this.m_maxProfile.broadphase.toFixed(2) + ")");
-      this.m_textLine += DRAW_STRING_NEW_LINE;
-    }
-
-    // #if B2_ENABLE_PARTICLE
-    if (this.m_mouseTracing && !this.m_mouseJoint) {
-      const delay = 0.1;
-      ///b2Vec2 acceleration = 2 / delay * (1 / delay * (m_mouseWorld - m_mouseTracerPosition) - m_mouseTracerVelocity);
-      const acceleration = new b2.Vec2();
-      acceleration.x = 2 / delay * (1 / delay * (this.m_mouseWorld.x - this.m_mouseTracerPosition.x) - this.m_mouseTracerVelocity.x);
-      acceleration.y = 2 / delay * (1 / delay * (this.m_mouseWorld.y - this.m_mouseTracerPosition.y) - this.m_mouseTracerVelocity.y);
-      ///m_mouseTracerVelocity += timeStep * acceleration;
-      this.m_mouseTracerVelocity.SelfMulAdd(timeStep, acceleration);
-      ///m_mouseTracerPosition += timeStep * m_mouseTracerVelocity;
-      this.m_mouseTracerPosition.SelfMulAdd(timeStep, this.m_mouseTracerVelocity);
-      const shape = new b2.CircleShape();
-      shape.m_p.Copy(this.m_mouseTracerPosition);
-      shape.m_radius = 2 * this.GetDefaultViewZoom();
-      ///QueryCallback2 callback(m_particleSystem, &shape, m_mouseTracerVelocity);
-      const callback = new QueryCallback2(this.m_particleSystem, shape, this.m_mouseTracerVelocity);
-      const aabb = new b2.AABB();
-      const xf = new b2.Transform();
-      xf.SetIdentity();
-      shape.ComputeAABB(aabb, xf, 0);
-      this.m_world.QueryAABB(callback, aabb);
-    }
-    // #endif
-
     if (this.m_bombSpawning) {
       const c: b2.Color = new b2.Color(0, 0, 1);
       g_debugDraw.DrawPoint(this.m_bombSpawnPoint, 4, c);
@@ -593,110 +445,6 @@ export class Test extends b2.ContactListener {
   ];
 
   public static readonly k_ParticleColorsCount = Test.k_ParticleColors.length;
-
-  /**
-   * Apply a preset range of colors to a particle group.
-   *
-   * A different color out of k_ParticleColors is applied to each
-   * particlesPerColor particles in the specified group.
-   *
-   * If particlesPerColor is 0, the particles in the group are
-   * divided into k_ParticleColorsCount equal sets of colored
-   * particles.
-   */
-  public ColorParticleGroup(group: b2.ParticleGroup, particlesPerColor: number) {
-    // DEBUG: b2.Assert(group !== null);
-    const colorBuffer = this.m_particleSystem.GetColorBuffer();
-    const particleCount = group.GetParticleCount();
-    const groupStart = group.GetBufferIndex();
-    const groupEnd = particleCount + groupStart;
-    const colorCount = Test.k_ParticleColors.length;
-    if (!particlesPerColor) {
-      particlesPerColor = Math.floor(particleCount / colorCount);
-      if (!particlesPerColor) {
-        particlesPerColor = 1;
-      }
-    }
-    for (let i = groupStart; i < groupEnd; i++) {
-      ///colorBuffer[i].Copy(box2d.Testbed.Test.k_ParticleColors[Math.floor(i / particlesPerColor) % colorCount]);
-      colorBuffer[i] = Test.k_ParticleColors[Math.floor(i / particlesPerColor) % colorCount].Clone();
-    }
-  }
-
-  /**
-   * Remove particle parameters matching "filterMask" from the set
-   * of particle parameters available for this test.
-   */
-  public InitializeParticleParameters(filterMask: number) {
-    const defaultNumValues = ParticleParameter.k_defaultDefinition[0].numValues;
-    const defaultValues = ParticleParameter.k_defaultDefinition[0].values;
-    ///  m_particleParameters = new ParticleParameter::Value[defaultNumValues];
-    this.m_particleParameters = [];
-    // Disable selection of wall and barrier particle types.
-    let numValues = 0;
-    for (let i = 0; i < defaultNumValues; i++) {
-      if (defaultValues[i].value & filterMask) {
-        continue;
-      }
-      ///memcpy(&m_particleParameters[numValues], &defaultValues[i], sizeof(defaultValues[0]));
-      this.m_particleParameters[numValues] = new ParticleParameterValue(defaultValues[i]);
-      numValues++;
-    }
-    this.m_particleParameterDef = new ParticleParameterDefinition(this.m_particleParameters, numValues);
-    ///m_particleParameterDef.values = m_particleParameters;
-    ///m_particleParameterDef.numValues = numValues;
-    Test.SetParticleParameters([this.m_particleParameterDef], 1);
-  }
-
-  /**
-   * Restore default particle parameters.
-   */
-  public RestoreParticleParameters() {
-    if (this.m_particleParameters) {
-      Test.SetParticleParameters(ParticleParameter.k_defaultDefinition, 1);
-      ///  delete [] m_particleParameters;
-      this.m_particleParameters = null;
-    }
-  }
-
-  /**
-   * Set whether to restart the test on particle parameter
-   * changes. This parameter is re-enabled when the test changes.
-   */
-  public static SetRestartOnParticleParameterChange(enable: boolean): void {
-    Test.particleParameter.SetRestartOnChange(enable);
-  }
-
-  /**
-   * Set the currently selected particle parameter value.  This
-   * value must match one of the values in
-   * Main::k_particleTypes or one of the values referenced by
-   * particleParameterDef passed to SetParticleParameters().
-   */
-  public static SetParticleParameterValue(value: number): number {
-    const index = Test.particleParameter.FindIndexByValue(value);
-    // If the particle type isn't found, so fallback to the first entry in the
-    // parameter.
-    Test.particleParameter.Set(index >= 0 ? index : 0);
-    return Test.particleParameter.GetValue();
-  }
-
-  /**
-   * Get the currently selected particle parameter value and
-   * enable particle parameter selection arrows on Android.
-   */
-  public static GetParticleParameterValue(): number {
-    // Enable display of particle type selection arrows.
-    Test.fullscreenUI.SetParticleParameterSelectionEnabled(true);
-    return Test.particleParameter.GetValue();
-  }
-
-  /**
-   * Override the default particle parameters for the test.
-   */
-  public static SetParticleParameters(particleParameterDef: ParticleParameterDefinition[], particleParameterDefCount: number = particleParameterDef.length) {
-    Test.particleParameter.SetDefinition(particleParameterDef, particleParameterDefCount);
-  }
 
   // #endif
 }
