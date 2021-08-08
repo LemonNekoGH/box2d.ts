@@ -22,7 +22,6 @@
 
 import * as b2 from "@box2d";
 import * as testbed from "@testbed";
-import {g_testEntries, TestEntry} from "@testbed";
 
 export class BoxStack extends testbed.Test {
   public static readonly e_columnCount = 1;
@@ -87,5 +86,3 @@ export class BoxStack extends testbed.Test {
     return new BoxStack();
   }
 }
-
-g_testEntries.push(new TestEntry("Stacking", "Boxes", BoxStack.Create));

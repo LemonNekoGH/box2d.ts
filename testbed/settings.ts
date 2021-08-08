@@ -36,10 +36,6 @@ export class Settings {
   public m_particleIterations: number = b2.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
   // #endif
   public m_drawShapes: boolean = true;
-  public m_enableWarmStarting: boolean = true;
-  public m_enableContinuous: boolean = true;
-  public m_enableSubStepping: boolean = false;
-  public m_enableSleep: boolean = true;
   public m_pause: boolean = false;
   public m_singleStep: boolean = false;
   // #if B2_ENABLE_PARTICLE
@@ -60,10 +56,6 @@ export class Settings {
     this.m_particleIterations = b2.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
     // #endif
     this.m_drawShapes = true;
-    this.m_enableWarmStarting = true;
-    this.m_enableContinuous = true;
-    this.m_enableSubStepping = false;
-    this.m_enableSleep = true;
     this.m_pause = false;
     this.m_singleStep = false;
     // #if B2_ENABLE_PARTICLE

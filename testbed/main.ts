@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 import { Settings } from "./settings.js";
-import { Test, g_testEntries } from "./test.js";
+import { Test } from "./test.js";
 import { g_debugDraw, g_camera } from "./draw.js";
 
 export class Main {
@@ -101,7 +101,7 @@ export class Main {
   public LoadTest(restartTest: boolean = false): void {
     this.m_demo_time = 0;
     // #endif
-    this.m_test = g_testEntries[0].createFcn();
+    this.m_test = new BoxStack();
     if (!restartTest) {
       this.HomeCamera();
     }
@@ -164,3 +164,4 @@ export class Main {
 }
 
 import "./tests/box_stack.js"
+import {BoxStack} from "./tests/box_stack";

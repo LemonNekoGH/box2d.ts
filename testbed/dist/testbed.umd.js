@@ -42,10 +42,6 @@
           this.m_particleIterations = b2__namespace.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
           // #endif
           this.m_drawShapes = true;
-          this.m_enableWarmStarting = true;
-          this.m_enableContinuous = true;
-          this.m_enableSubStepping = false;
-          this.m_enableSleep = true;
           this.m_pause = false;
           this.m_singleStep = false;
           // #if B2_ENABLE_PARTICLE
@@ -66,10 +62,6 @@
           this.m_particleIterations = b2__namespace.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
           // #endif
           this.m_drawShapes = true;
-          this.m_enableWarmStarting = true;
-          this.m_enableContinuous = true;
-          this.m_enableSubStepping = false;
-          this.m_enableSleep = true;
           this.m_pause = false;
           this.m_singleStep = false;
           // #if B2_ENABLE_PARTICLE
@@ -289,16 +281,6 @@
       r = (hi - lo) * r + lo;
       return r;
   }
-  class TestEntry {
-      constructor(category, name, createFcn) {
-          this.category = "";
-          this.name = "unknown";
-          this.category = category;
-          this.name = name;
-          this.createFcn = createFcn;
-      }
-  }
-  const g_testEntries = [];
   class ContactPoint {
       constructor() {
           this.normal = new b2__namespace.Vec2();
@@ -309,9 +291,8 @@
           this.separation = 0;
       }
   }
-  class Test extends b2__namespace.ContactListener {
+  class Test {
       constructor() {
-          super();
           this.m_bomb = null;
           this.m_textLine = 30;
           this.m_mouseJoint = null;
@@ -328,13 +309,10 @@
           this.m_bomb = null;
           this.m_textLine = 30;
           this.m_mouseJoint = null;
-          this.m_world.SetContactListener(this);
           this.m_world.SetDebugDraw(g_debugDraw);
           const bodyDef = new b2__namespace.BodyDef();
           this.m_groundBody = this.m_world.CreateBody(bodyDef);
       }
-      BeginContact(contact) { }
-      EndContact(contact) { }
       PreSolve(contact, oldManifold) {
           const manifold = contact.GetManifold();
           if (manifold.pointCount === 0) {
@@ -360,7 +338,6 @@
               ++this.m_pointCount;
           }
       }
-      PostSolve(contact, impulse) { }
       Step(settings) {
           let timeStep = settings.m_hertz > 0 ? 1 / settings.m_hertz : 0;
           if (settings.m_pause) {
@@ -374,35 +351,15 @@
               this.m_textLine += DRAW_STRING_NEW_LINE;
           }
           g_debugDraw.SetFlags(b2DrawFlags.e_shapeBit);
-          this.m_world.SetAllowSleeping(settings.m_enableSleep);
-          this.m_world.SetWarmStarting(settings.m_enableWarmStarting);
-          this.m_world.SetContinuousPhysics(settings.m_enableContinuous);
-          this.m_world.SetSubStepping(settings.m_enableSubStepping);
+          this.m_world.SetAllowSleeping(true);
+          this.m_world.SetWarmStarting(true);
+          this.m_world.SetContinuousPhysics(true);
+          this.m_world.SetSubStepping(false);
           this.m_pointCount = 0;
           this.m_world.Step(timeStep, settings.m_velocityIterations, settings.m_positionIterations);
           this.m_world.DebugDraw();
           if (timeStep > 0) {
               ++this.m_stepCount;
-          }
-          // Track maximum profile times
-          {
-              const p = this.m_world.GetProfile();
-              this.m_maxProfile.step = b2__namespace.Max(this.m_maxProfile.step, p.step);
-              this.m_maxProfile.collide = b2__namespace.Max(this.m_maxProfile.collide, p.collide);
-              this.m_maxProfile.solve = b2__namespace.Max(this.m_maxProfile.solve, p.solve);
-              this.m_maxProfile.solveInit = b2__namespace.Max(this.m_maxProfile.solveInit, p.solveInit);
-              this.m_maxProfile.solveVelocity = b2__namespace.Max(this.m_maxProfile.solveVelocity, p.solveVelocity);
-              this.m_maxProfile.solvePosition = b2__namespace.Max(this.m_maxProfile.solvePosition, p.solvePosition);
-              this.m_maxProfile.solveTOI = b2__namespace.Max(this.m_maxProfile.solveTOI, p.solveTOI);
-              this.m_maxProfile.broadphase = b2__namespace.Max(this.m_maxProfile.broadphase, p.broadphase);
-              this.m_totalProfile.step += p.step;
-              this.m_totalProfile.collide += p.collide;
-              this.m_totalProfile.solve += p.solve;
-              this.m_totalProfile.solveInit += p.solveInit;
-              this.m_totalProfile.solveVelocity += p.solveVelocity;
-              this.m_totalProfile.solvePosition += p.solvePosition;
-              this.m_totalProfile.solveTOI += p.solveTOI;
-              this.m_totalProfile.broadphase += p.broadphase;
           }
           if (this.m_bombSpawning) {
               const c = new b2__namespace.Color(0, 0, 1);
@@ -410,9 +367,6 @@
               c.SetRGB(0.8, 0.8, 0.8);
               g_debugDraw.DrawSegment(this.m_mouseWorld, this.m_bombSpawnPoint, c);
           }
-      }
-      ShiftOrigin(newOrigin) {
-          this.m_world.ShiftOrigin(newOrigin);
       }
       GetDefaultViewZoom() {
           return 1.0;
@@ -481,7 +435,6 @@
   }
   BoxStack.e_columnCount = 1;
   BoxStack.e_rowCount = 15;
-  g_testEntries.push(new TestEntry("Stacking", "Boxes", BoxStack.Create));
 
   // MIT License
   class Main {
@@ -544,7 +497,7 @@
       LoadTest(restartTest = false) {
           this.m_demo_time = 0;
           // #endif
-          this.m_test = g_testEntries[0].createFcn();
+          this.m_test = new BoxStack();
           if (!restartTest) {
               this.HomeCamera();
           }
@@ -597,10 +550,8 @@
   exports.RandomFloat = RandomFloat;
   exports.Settings = Settings;
   exports.Test = Test;
-  exports.TestEntry = TestEntry;
   exports.g_camera = g_camera;
   exports.g_debugDraw = g_debugDraw;
-  exports.g_testEntries = g_testEntries;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 

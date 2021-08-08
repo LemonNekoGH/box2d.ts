@@ -33,20 +33,6 @@ export function RandomFloat(lo: number = -1, hi: number = 1) {
   return r;
 }
 
-export class TestEntry {
-  public category: string = "";
-  public name: string = "unknown";
-  public createFcn: () => Test;
-
-  constructor(category: string, name: string, createFcn: () => Test) {
-    this.category = category;
-    this.name = name;
-    this.createFcn = createFcn;
-  }
-}
-
-export const g_testEntries: TestEntry[] = []
-
 export class ContactPoint {
   public fixtureA!: b2.Fixture;
   public fixtureB!: b2.Fixture;
@@ -58,7 +44,7 @@ export class ContactPoint {
   public separation: number = 0;
 }
 
-export class Test extends b2.ContactListener {
+export class Test {
   public static readonly k_maxContactPoints: number = 2048;
 
   public m_world: b2.World;
@@ -76,23 +62,17 @@ export class Test extends b2.ContactListener {
   public m_groundBody: b2.Body;
 
   constructor() {
-    super();
     const gravity: b2.Vec2 = new b2.Vec2(0, -10);
     this.m_world = new b2.World(gravity);
     this.m_bomb = null;
     this.m_textLine = 30;
     this.m_mouseJoint = null;
 
-    this.m_world.SetContactListener(this);
     this.m_world.SetDebugDraw(g_debugDraw);
 
     const bodyDef: b2.BodyDef = new b2.BodyDef();
     this.m_groundBody = this.m_world.CreateBody(bodyDef);
   }
-
-  public BeginContact(contact: b2.Contact): void {}
-
-  public EndContact(contact: b2.Contact): void {}
 
   private static PreSolve_s_state1: b2.PointState[] = [/*b2.maxManifoldPoints*/];
   private static PreSolve_s_state2: b2.PointState[] = [/*b2.maxManifoldPoints*/];
@@ -128,8 +108,6 @@ export class Test extends b2.ContactListener {
     }
   }
 
-  public PostSolve(contact: b2.Contact, impulse: b2.ContactImpulse): void {}
-
   public Step(settings: Settings): void {
     let timeStep = settings.m_hertz > 0 ? 1 / settings.m_hertz : 0;
 
@@ -146,10 +124,10 @@ export class Test extends b2.ContactListener {
 
     g_debugDraw.SetFlags(b2DrawFlags.e_shapeBit);
 
-    this.m_world.SetAllowSleeping(settings.m_enableSleep);
-    this.m_world.SetWarmStarting(settings.m_enableWarmStarting);
-    this.m_world.SetContinuousPhysics(settings.m_enableContinuous);
-    this.m_world.SetSubStepping(settings.m_enableSubStepping);
+    this.m_world.SetAllowSleeping(true);
+    this.m_world.SetWarmStarting(true);
+    this.m_world.SetContinuousPhysics(true);
+    this.m_world.SetSubStepping(false);
 
     this.m_pointCount = 0;
 
@@ -161,28 +139,6 @@ export class Test extends b2.ContactListener {
       ++this.m_stepCount;
     }
 
-    // Track maximum profile times
-    {
-      const p = this.m_world.GetProfile();
-      this.m_maxProfile.step = b2.Max(this.m_maxProfile.step, p.step);
-      this.m_maxProfile.collide = b2.Max(this.m_maxProfile.collide, p.collide);
-      this.m_maxProfile.solve = b2.Max(this.m_maxProfile.solve, p.solve);
-      this.m_maxProfile.solveInit = b2.Max(this.m_maxProfile.solveInit, p.solveInit);
-      this.m_maxProfile.solveVelocity = b2.Max(this.m_maxProfile.solveVelocity, p.solveVelocity);
-      this.m_maxProfile.solvePosition = b2.Max(this.m_maxProfile.solvePosition, p.solvePosition);
-      this.m_maxProfile.solveTOI = b2.Max(this.m_maxProfile.solveTOI, p.solveTOI);
-      this.m_maxProfile.broadphase = b2.Max(this.m_maxProfile.broadphase, p.broadphase);
-
-      this.m_totalProfile.step += p.step;
-      this.m_totalProfile.collide += p.collide;
-      this.m_totalProfile.solve += p.solve;
-      this.m_totalProfile.solveInit += p.solveInit;
-      this.m_totalProfile.solveVelocity += p.solveVelocity;
-      this.m_totalProfile.solvePosition += p.solvePosition;
-      this.m_totalProfile.solveTOI += p.solveTOI;
-      this.m_totalProfile.broadphase += p.broadphase;
-    }
-
     if (this.m_bombSpawning) {
       const c: b2.Color = new b2.Color(0, 0, 1);
       g_debugDraw.DrawPoint(this.m_bombSpawnPoint, 4, c);
@@ -190,10 +146,6 @@ export class Test extends b2.ContactListener {
       c.SetRGB(0.8, 0.8, 0.8);
       g_debugDraw.DrawSegment(this.m_mouseWorld, this.m_bombSpawnPoint, c);
     }
-  }
-
-  public ShiftOrigin(newOrigin: b2.Vec2): void {
-    this.m_world.ShiftOrigin(newOrigin);
   }
 
   public GetDefaultViewZoom(): number {
