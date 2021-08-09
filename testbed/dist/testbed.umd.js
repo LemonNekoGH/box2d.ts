@@ -230,16 +230,9 @@
 
   // MIT License
   const DRAW_STRING_NEW_LINE = 16;
-  function RandomFloat(lo = -1, hi = 1) {
-      let r = Math.random();
-      r = (hi - lo) * r + lo;
-      return r;
-  }
   class Test {
       constructor() {
-          this.m_bomb = null;
           this.m_textLine = 30;
-          this.m_mouseJoint = null;
           this.m_pointCount = 0;
           this.m_bombSpawnPoint = new b2__namespace.Vec2();
           this.m_bombSpawning = false;
@@ -249,25 +242,49 @@
           this.m_totalProfile = new b2__namespace.Profile();
           const gravity = new b2__namespace.Vec2(0, -10);
           this.m_world = new b2__namespace.World(gravity);
-          this.m_bomb = null;
           this.m_textLine = 30;
-          this.m_mouseJoint = null;
           this.m_world.SetDebugDraw(g_debugDraw);
           const bodyDef = new b2__namespace.BodyDef();
           this.m_groundBody = this.m_world.CreateBody(bodyDef);
+          // BoxStack
+          this.m_bodies = new Array(Test.e_rowCount * Test.e_columnCount);
+          this.m_indices = new Array(Test.e_rowCount * Test.e_columnCount);
+          {
+              const bd = new b2__namespace.BodyDef();
+              const ground = this.m_world.CreateBody(bd);
+              const shape = new b2__namespace.EdgeShape();
+              shape.SetTwoSided(new b2__namespace.Vec2(-40.0, 0.0), new b2__namespace.Vec2(40.0, 0.0));
+              ground.CreateFixture(shape, 0.0);
+              shape.SetTwoSided(new b2__namespace.Vec2(20.0, 0.0), new b2__namespace.Vec2(20.0, 20.0));
+              ground.CreateFixture(shape, 0.0);
+          }
+          const xs = [0.0, -10.0, -5.0, 5.0, 10.0];
+          for (let j = 0; j < Test.e_columnCount; ++j) {
+              const shape = new b2__namespace.PolygonShape();
+              shape.SetAsBox(0.5, 0.5);
+              const fd = new b2__namespace.FixtureDef();
+              fd.shape = shape;
+              fd.density = 1.0;
+              fd.friction = 0.3;
+              for (let i = 0; i < Test.e_rowCount; ++i) {
+                  const bd = new b2__namespace.BodyDef();
+                  bd.type = b2__namespace.BodyType.b2_dynamicBody;
+                  const n = j * Test.e_rowCount + i;
+                  // DEBUG: b2.Assert(n < BoxStack.e_rowCount * BoxStack.e_columnCount);
+                  this.m_indices[n] = n;
+                  bd.userData = this.m_indices[n];
+                  const x = 0.0;
+                  //const x = b2.RandomRange(-0.02, 0.02);
+                  //const x = i % 2 === 0 ? -0.01 : 0.01;
+                  bd.position.Set(xs[j] + x, 0.55 + 1.1 * i);
+                  const body = this.m_world.CreateBody(bd);
+                  this.m_bodies[n] = body;
+                  body.CreateFixture(fd);
+              }
+          }
       }
       Step(settings) {
           let timeStep = settings.m_hertz > 0 ? 1 / settings.m_hertz : 0;
-          if (settings.m_pause) {
-              if (settings.m_singleStep) {
-                  settings.m_singleStep = false;
-              }
-              else {
-                  timeStep = 0;
-              }
-              g_debugDraw.DrawString(5, this.m_textLine, "****PAUSED****");
-              this.m_textLine += DRAW_STRING_NEW_LINE;
-          }
           g_debugDraw.SetFlags(b2DrawFlags.e_shapeBit);
           this.m_world.SetAllowSleeping(true);
           this.m_world.SetWarmStarting(true);
@@ -277,29 +294,14 @@
           this.m_world.Step(timeStep, settings.m_velocityIterations, settings.m_positionIterations);
           this.m_world.DebugDraw();
           ++this.m_stepCount;
-          if (this.m_bombSpawning) {
-              const c = new b2__namespace.Color(0, 0, 1);
-              g_debugDraw.DrawPoint(this.m_bombSpawnPoint, 4, c);
-              c.SetRGB(0.8, 0.8, 0.8);
-              g_debugDraw.DrawSegment(this.m_mouseWorld, this.m_bombSpawnPoint, c);
-          }
       }
       GetDefaultViewZoom() {
           return 1.0;
       }
   }
   Test.k_maxContactPoints = 2048;
-  Test.k_ParticleColors = [
-      new b2__namespace.Color().SetByteRGBA(0xff, 0x00, 0x00, 0xff),
-      new b2__namespace.Color().SetByteRGBA(0x00, 0xff, 0x00, 0xff),
-      new b2__namespace.Color().SetByteRGBA(0x00, 0x00, 0xff, 0xff),
-      new b2__namespace.Color().SetByteRGBA(0xff, 0x8c, 0x00, 0xff),
-      new b2__namespace.Color().SetByteRGBA(0x00, 0xce, 0xd1, 0xff),
-      new b2__namespace.Color().SetByteRGBA(0xff, 0x00, 0xff, 0xff),
-      new b2__namespace.Color().SetByteRGBA(0xff, 0xd7, 0x00, 0xff),
-      new b2__namespace.Color().SetByteRGBA(0x00, 0xff, 0xff, 0xff), // cyan
-  ];
-  Test.k_ParticleColorsCount = Test.k_ParticleColors.length;
+  Test.e_columnCount = 1;
+  Test.e_rowCount = 15;
 
   // MIT License
   class Settings {
@@ -346,54 +348,6 @@
       Save() { }
       Load() { }
   }
-
-  // MIT License
-  class BoxStack extends Test {
-      constructor() {
-          super();
-          this.m_bullet = null;
-          this.m_bodies = new Array(BoxStack.e_rowCount * BoxStack.e_columnCount);
-          this.m_indices = new Array(BoxStack.e_rowCount * BoxStack.e_columnCount);
-          {
-              const bd = new b2__namespace.BodyDef();
-              const ground = this.m_world.CreateBody(bd);
-              const shape = new b2__namespace.EdgeShape();
-              shape.SetTwoSided(new b2__namespace.Vec2(-40.0, 0.0), new b2__namespace.Vec2(40.0, 0.0));
-              ground.CreateFixture(shape, 0.0);
-              shape.SetTwoSided(new b2__namespace.Vec2(20.0, 0.0), new b2__namespace.Vec2(20.0, 20.0));
-              ground.CreateFixture(shape, 0.0);
-          }
-          const xs = [0.0, -10.0, -5.0, 5.0, 10.0];
-          for (let j = 0; j < BoxStack.e_columnCount; ++j) {
-              const shape = new b2__namespace.PolygonShape();
-              shape.SetAsBox(0.5, 0.5);
-              const fd = new b2__namespace.FixtureDef();
-              fd.shape = shape;
-              fd.density = 1.0;
-              fd.friction = 0.3;
-              for (let i = 0; i < BoxStack.e_rowCount; ++i) {
-                  const bd = new b2__namespace.BodyDef();
-                  bd.type = b2__namespace.BodyType.b2_dynamicBody;
-                  const n = j * BoxStack.e_rowCount + i;
-                  // DEBUG: b2.Assert(n < BoxStack.e_rowCount * BoxStack.e_columnCount);
-                  this.m_indices[n] = n;
-                  bd.userData = this.m_indices[n];
-                  const x = 0.0;
-                  //const x = b2.RandomRange(-0.02, 0.02);
-                  //const x = i % 2 === 0 ? -0.01 : 0.01;
-                  bd.position.Set(xs[j] + x, 0.55 + 1.1 * i);
-                  const body = this.m_world.CreateBody(bd);
-                  this.m_bodies[n] = body;
-                  body.CreateFixture(fd);
-              }
-          }
-      }
-      static Create() {
-          return new BoxStack();
-      }
-  }
-  BoxStack.e_columnCount = 1;
-  BoxStack.e_rowCount = 15;
 
   // MIT License
   class Main {
@@ -448,7 +402,6 @@
       HomeCamera() {
           g_camera.m_zoom = (this.m_test) ? (this.m_test.GetDefaultViewZoom()) : (1.0);
           g_camera.m_center.Set(0, 20 * g_camera.m_zoom);
-          ///g_camera.m_roll.SetAngle(b2.DegToRad(0));
       }
       UpdateTest(time_elapsed) {
           this.m_demo_time += time_elapsed;
@@ -456,7 +409,7 @@
       LoadTest(restartTest = false) {
           this.m_demo_time = 0;
           // #endif
-          this.m_test = new BoxStack();
+          this.m_test = new Test();
           if (!restartTest) {
               this.HomeCamera();
           }
@@ -495,7 +448,6 @@
   exports.DRAW_STRING_NEW_LINE = DRAW_STRING_NEW_LINE;
   exports.DebugDraw = DebugDraw;
   exports.Main = Main;
-  exports.RandomFloat = RandomFloat;
   exports.Test = Test;
   exports.g_camera = g_camera;
   exports.g_debugDraw = g_debugDraw;

@@ -91,7 +91,6 @@ export class Main {
   public HomeCamera(): void {
     g_camera.m_zoom = (this.m_test) ? (this.m_test.GetDefaultViewZoom()) : (1.0);
     g_camera.m_center.Set(0, 20 * g_camera.m_zoom);
-    ///g_camera.m_roll.SetAngle(b2.DegToRad(0));
   }
 
   public UpdateTest(time_elapsed: number): void {
@@ -101,7 +100,7 @@ export class Main {
   public LoadTest(restartTest: boolean = false): void {
     this.m_demo_time = 0;
     // #endif
-    this.m_test = new BoxStack();
+    this.m_test = new Test();
     if (!restartTest) {
       this.HomeCamera();
     }
@@ -136,6 +135,3 @@ export class Main {
     }
   }
 }
-
-import "./tests/box_stack.js"
-import {BoxStack} from "./tests/box_stack";
