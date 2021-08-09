@@ -26,7 +26,7 @@
     "dist-unit-test": "(cd unit-test && rollup -c)",
     "clean-testbed": "rm -rf testbed/build",
     "build-testbed": "tsc -p testbed",
-    "watch-testbed": "tsc -p testbed --watch",
+    "watch-testbed": "(cd testbed && rollup -c -w)",
     "start-testbed": "http-server -c-1 -o testbed/index.html",
     "dist-testbed": "(cd testbed && rollup -c)",
     "test": "echo \"Error: no test specified\" && exit 1"

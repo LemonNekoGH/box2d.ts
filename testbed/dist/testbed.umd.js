@@ -27,52 +27,6 @@
   var b2__namespace = /*#__PURE__*/_interopNamespace(b2);
 
   // MIT License
-  class Settings {
-      constructor() {
-          this.m_testIndex = 0;
-          this.m_windowWidth = 1600;
-          this.m_windowHeight = 900;
-          this.m_hertz = 60;
-          this.m_velocityIterations = 8;
-          this.m_positionIterations = 3;
-          // #if B2_ENABLE_PARTICLE
-          // Particle iterations are needed for numerical stability in particle
-          // simulations with small particles and relatively high gravity.
-          // b2CalculateParticleIterations helps to determine the number.
-          this.m_particleIterations = b2__namespace.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
-          // #endif
-          this.m_drawShapes = true;
-          this.m_pause = false;
-          this.m_singleStep = false;
-          // #if B2_ENABLE_PARTICLE
-          this.m_strictContacts = false;
-      }
-      // #endif
-      Reset() {
-          this.m_testIndex = 0;
-          this.m_windowWidth = 1600;
-          this.m_windowHeight = 900;
-          this.m_hertz = 60;
-          this.m_velocityIterations = 8;
-          this.m_positionIterations = 3;
-          // #if B2_ENABLE_PARTICLE
-          // Particle iterations are needed for numerical stability in particle
-          // simulations with small particles and relatively high gravity.
-          // b2CalculateParticleIterations helps to determine the number.
-          this.m_particleIterations = b2__namespace.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
-          // #endif
-          this.m_drawShapes = true;
-          this.m_pause = false;
-          this.m_singleStep = false;
-          // #if B2_ENABLE_PARTICLE
-          this.m_strictContacts = false;
-          // #endif
-      }
-      Save() { }
-      Load() { }
-  }
-
-  // MIT License
   class Camera {
       constructor() {
           this.m_center = new b2__namespace.Vec2(0, 20);
@@ -281,22 +235,11 @@
       r = (hi - lo) * r + lo;
       return r;
   }
-  class ContactPoint {
-      constructor() {
-          this.normal = new b2__namespace.Vec2();
-          this.position = new b2__namespace.Vec2();
-          this.state = b2__namespace.PointState.b2_nullState;
-          this.normalImpulse = 0;
-          this.tangentImpulse = 0;
-          this.separation = 0;
-      }
-  }
   class Test {
       constructor() {
           this.m_bomb = null;
           this.m_textLine = 30;
           this.m_mouseJoint = null;
-          this.m_points = b2__namespace.MakeArray(Test.k_maxContactPoints, (i) => new ContactPoint());
           this.m_pointCount = 0;
           this.m_bombSpawnPoint = new b2__namespace.Vec2();
           this.m_bombSpawning = false;
@@ -312,31 +255,6 @@
           this.m_world.SetDebugDraw(g_debugDraw);
           const bodyDef = new b2__namespace.BodyDef();
           this.m_groundBody = this.m_world.CreateBody(bodyDef);
-      }
-      PreSolve(contact, oldManifold) {
-          const manifold = contact.GetManifold();
-          if (manifold.pointCount === 0) {
-              return;
-          }
-          const fixtureA = contact.GetFixtureA();
-          const fixtureB = contact.GetFixtureB();
-          const state1 = Test.PreSolve_s_state1;
-          const state2 = Test.PreSolve_s_state2;
-          b2__namespace.GetPointStates(state1, state2, oldManifold, manifold);
-          const worldManifold = Test.PreSolve_s_worldManifold;
-          contact.GetWorldManifold(worldManifold);
-          for (let i = 0; i < manifold.pointCount && this.m_pointCount < Test.k_maxContactPoints; ++i) {
-              const cp = this.m_points[this.m_pointCount];
-              cp.fixtureA = fixtureA;
-              cp.fixtureB = fixtureB;
-              cp.position.Copy(worldManifold.points[i]);
-              cp.normal.Copy(worldManifold.normal);
-              cp.state = state2[i];
-              cp.normalImpulse = manifold.points[i].normalImpulse;
-              cp.tangentImpulse = manifold.points[i].tangentImpulse;
-              cp.separation = worldManifold.separations[i];
-              ++this.m_pointCount;
-          }
       }
       Step(settings) {
           let timeStep = settings.m_hertz > 0 ? 1 / settings.m_hertz : 0;
@@ -358,9 +276,7 @@
           this.m_pointCount = 0;
           this.m_world.Step(timeStep, settings.m_velocityIterations, settings.m_positionIterations);
           this.m_world.DebugDraw();
-          if (timeStep > 0) {
-              ++this.m_stepCount;
-          }
+          ++this.m_stepCount;
           if (this.m_bombSpawning) {
               const c = new b2__namespace.Color(0, 0, 1);
               g_debugDraw.DrawPoint(this.m_bombSpawnPoint, 4, c);
@@ -373,9 +289,6 @@
       }
   }
   Test.k_maxContactPoints = 2048;
-  Test.PreSolve_s_state1 = [ /*b2.maxManifoldPoints*/];
-  Test.PreSolve_s_state2 = [ /*b2.maxManifoldPoints*/];
-  Test.PreSolve_s_worldManifold = new b2__namespace.WorldManifold();
   Test.k_ParticleColors = [
       new b2__namespace.Color().SetByteRGBA(0xff, 0x00, 0x00, 0xff),
       new b2__namespace.Color().SetByteRGBA(0x00, 0xff, 0x00, 0xff),
@@ -387,6 +300,52 @@
       new b2__namespace.Color().SetByteRGBA(0x00, 0xff, 0xff, 0xff), // cyan
   ];
   Test.k_ParticleColorsCount = Test.k_ParticleColors.length;
+
+  // MIT License
+  class Settings {
+      constructor() {
+          this.m_testIndex = 0;
+          this.m_windowWidth = 1600;
+          this.m_windowHeight = 900;
+          this.m_hertz = 60;
+          this.m_velocityIterations = 8;
+          this.m_positionIterations = 3;
+          // #if B2_ENABLE_PARTICLE
+          // Particle iterations are needed for numerical stability in particle
+          // simulations with small particles and relatively high gravity.
+          // b2CalculateParticleIterations helps to determine the number.
+          this.m_particleIterations = b2__namespace.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
+          // #endif
+          this.m_drawShapes = true;
+          this.m_pause = false;
+          this.m_singleStep = false;
+          // #if B2_ENABLE_PARTICLE
+          this.m_strictContacts = false;
+      }
+      // #endif
+      Reset() {
+          this.m_testIndex = 0;
+          this.m_windowWidth = 1600;
+          this.m_windowHeight = 900;
+          this.m_hertz = 60;
+          this.m_velocityIterations = 8;
+          this.m_positionIterations = 3;
+          // #if B2_ENABLE_PARTICLE
+          // Particle iterations are needed for numerical stability in particle
+          // simulations with small particles and relatively high gravity.
+          // b2CalculateParticleIterations helps to determine the number.
+          this.m_particleIterations = b2__namespace.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
+          // #endif
+          this.m_drawShapes = true;
+          this.m_pause = false;
+          this.m_singleStep = false;
+          // #if B2_ENABLE_PARTICLE
+          this.m_strictContacts = false;
+          // #endif
+      }
+      Save() { }
+      Load() { }
+  }
 
   // MIT License
   class BoxStack extends Test {
@@ -508,47 +467,35 @@
           this.m_time_last = time;
           if (time_elapsed > 1000) {
               time_elapsed = 1000;
-          } // clamp
+          }
           if (time_elapsed > 0) {
               const ctx = this.m_ctx;
-              // #endif
               if (ctx) {
                   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                  // ctx.strokeStyle = "blue";
-                  // ctx.strokeRect(this.m_mouse.x - 24, this.m_mouse.y - 24, 48, 48);
-                  // const mouse_world: b2.Vec2 = g_camera.ConvertScreenToWorld(this.m_mouse, new b2.Vec2());
                   ctx.save();
-                  // 0,0 at center of canvas, x right, y up
                   ctx.translate(0.5 * ctx.canvas.width, 0.5 * ctx.canvas.height);
                   ctx.scale(1, -1);
-                  ///ctx.scale(g_camera.m_extent, g_camera.m_extent);
-                  ///ctx.lineWidth /= g_camera.m_extent;
                   const s = 0.5 * g_camera.m_height / g_camera.m_extent;
                   ctx.scale(s, s);
                   ctx.lineWidth /= s;
-                  // apply camera
                   ctx.scale(1 / g_camera.m_zoom, 1 / g_camera.m_zoom);
                   ctx.lineWidth *= g_camera.m_zoom;
-                  ///ctx.rotate(-g_camera.m_roll.GetAngle());
                   ctx.translate(-g_camera.m_center.x, -g_camera.m_center.y);
                   if (this.m_test) {
                       this.m_test.Step(this.m_settings);
                   }
                   ctx.restore();
               }
-              // #endif
               this.UpdateTest(time_elapsed);
           }
       }
   }
 
   exports.Camera = Camera;
-  exports.ContactPoint = ContactPoint;
   exports.DRAW_STRING_NEW_LINE = DRAW_STRING_NEW_LINE;
   exports.DebugDraw = DebugDraw;
   exports.Main = Main;
   exports.RandomFloat = RandomFloat;
-  exports.Settings = Settings;
   exports.Test = Test;
   exports.g_camera = g_camera;
   exports.g_debugDraw = g_debugDraw;

@@ -109,55 +109,29 @@ export class Main {
 
   public SimulationLoop(time: number): void {
     this.m_time_last = this.m_time_last || time;
-
     let time_elapsed: number = time - this.m_time_last;
     this.m_time_last = time;
-
-    if (time_elapsed > 1000) { time_elapsed = 1000; } // clamp
-
+    if (time_elapsed > 1000) { time_elapsed = 1000; }
     if (time_elapsed > 0) {
       const ctx: CanvasRenderingContext2D | null = this.m_ctx;
-
-      // #if B2_ENABLE_PARTICLE
       const restartTest = [false];
-      // #endif
-
       if (ctx) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-        // ctx.strokeStyle = "blue";
-        // ctx.strokeRect(this.m_mouse.x - 24, this.m_mouse.y - 24, 48, 48);
-
-        // const mouse_world: b2.Vec2 = g_camera.ConvertScreenToWorld(this.m_mouse, new b2.Vec2());
-
         ctx.save();
-
-          // 0,0 at center of canvas, x right, y up
         ctx.translate(0.5 * ctx.canvas.width, 0.5 * ctx.canvas.height);
         ctx.scale(1, -1);
-          ///ctx.scale(g_camera.m_extent, g_camera.m_extent);
-          ///ctx.lineWidth /= g_camera.m_extent;
         const s: number = 0.5 * g_camera.m_height / g_camera.m_extent;
         ctx.scale(s, s);
         ctx.lineWidth /= s;
-
-          // apply camera
         ctx.scale(1 / g_camera.m_zoom, 1 / g_camera.m_zoom);
         ctx.lineWidth *= g_camera.m_zoom;
-          ///ctx.rotate(-g_camera.m_roll.GetAngle());
         ctx.translate(-g_camera.m_center.x, -g_camera.m_center.y);
-
         if (this.m_test) { this.m_test.Step(this.m_settings); }
-
         ctx.restore();
       }
-
-      // #if B2_ENABLE_PARTICLE
       if (restartTest[0]) {
         this.LoadTest(true);
       }
-      // #endif
-
       this.UpdateTest(time_elapsed);
     }
   }
