@@ -231,26 +231,15 @@
   // MIT License
   class Test {
       constructor() {
-          this.m_textLine = 30;
-          this.m_pointCount = 0;
-          this.m_stepCount = 0;
-          const gravity = new b2__namespace.Vec2(0, -10);
-          this.m_world = new b2__namespace.World(gravity);
-          this.m_textLine = 30;
+          this.m_world = new b2__namespace.World(new b2__namespace.Vec2(0, -10));
           this.m_world.SetDebugDraw(g_debugDraw);
           const bodyDef = new b2__namespace.BodyDef();
-          this.m_groundBody = this.m_world.CreateBody(bodyDef);
+          this.m_world.CreateBody(bodyDef);
           // BoxStack
-          this.m_bodies = new Array(15);
-          this.m_indices = new Array(15);
           {
               const bd = new b2__namespace.BodyDef();
-              const ground = this.m_world.CreateBody(bd);
-              const shape = new b2__namespace.EdgeShape();
-              shape.SetTwoSided(new b2__namespace.Vec2(-40.0, 0.0), new b2__namespace.Vec2(40.0, 0.0));
-              ground.CreateFixture(shape, 0.0);
-              shape.SetTwoSided(new b2__namespace.Vec2(20.0, 0.0), new b2__namespace.Vec2(20.0, 20.0));
-              ground.CreateFixture(shape, 0.0);
+              this.m_world.CreateBody(bd);
+              new b2__namespace.EdgeShape();
           }
           const xs = [0.0, -10.0, -5.0, 5.0, 10.0];
           const shape = new b2__namespace.PolygonShape();
@@ -262,16 +251,9 @@
           for (let i = 0; i < 15; ++i) {
               const bd = new b2__namespace.BodyDef();
               bd.type = b2__namespace.BodyType.b2_dynamicBody;
-              const n = Test.e_rowCount + i;
-              // DEBUG: b2.Assert(n < BoxStack.e_rowCount * BoxStack.e_columnCount);
-              this.m_indices[n] = n;
-              bd.userData = this.m_indices[n];
               const x = 0.0;
-              //const x = b2.RandomRange(-0.02, 0.02);
-              //const x = i % 2 === 0 ? -0.01 : 0.01;
               bd.position.Set(xs[0] + x, 0.55 + 1.1 * i);
               const body = this.m_world.CreateBody(bd);
-              this.m_bodies[n] = body;
               body.CreateFixture(fd);
           }
       }
@@ -282,18 +264,13 @@
           this.m_world.SetWarmStarting(true);
           this.m_world.SetContinuousPhysics(true);
           this.m_world.SetSubStepping(false);
-          this.m_pointCount = 0;
           this.m_world.Step(timeStep, settings.m_velocityIterations, settings.m_positionIterations);
           this.m_world.DebugDraw();
-          ++this.m_stepCount;
       }
       GetDefaultViewZoom() {
           return 1.0;
       }
   }
-  Test.k_maxContactPoints = 2048;
-  Test.e_columnCount = 1;
-  Test.e_rowCount = 15;
 
   // MIT License
   class Settings {

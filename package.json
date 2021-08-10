@@ -42,7 +42,8 @@
   },
   "homepage": "https://github.com/flyover/box2d.ts#readme",
   "dependencies": {
-    "@types/systemjs": "^6.1.0"
+    "@types/systemjs": "^6.1.0",
+    "ts-node": "^10.2.0"
   },
   "devDependencies": {
     "http-server": "^0.12.3",

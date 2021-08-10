@@ -26,43 +26,19 @@ import {b2DrawFlags} from "../build/common/b2_draw";
 import {Settings} from "./settings";
 
 export class Test {
-  public static readonly k_maxContactPoints: number = 2048;
-
-  public static readonly e_columnCount = 1;
-  public static readonly e_rowCount = 15;
-
-  public m_bodies: b2.Body[];
-  public m_indices: number[];
-
   public m_world: b2.World;
-  public m_textLine: number = 30;
-  public m_pointCount: number = 0;
-  public m_stepCount: number = 0;
-  public m_groundBody: b2.Body;
 
   constructor() {
-    const gravity: b2.Vec2 = new b2.Vec2(0, -10);
-    this.m_world = new b2.World(gravity);
-    this.m_textLine = 30;
-
+    this.m_world = new b2.World(new b2.Vec2(0, -10));
     this.m_world.SetDebugDraw(g_debugDraw);
 
     const bodyDef: b2.BodyDef = new b2.BodyDef();
-    this.m_groundBody = this.m_world.CreateBody(bodyDef);
+    this.m_world.CreateBody(bodyDef);
     // BoxStack
-    this.m_bodies = new Array(15);
-    this.m_indices = new Array(15);
-
     {
       const bd = new b2.BodyDef();
-      const ground = this.m_world.CreateBody(bd);
-
-      const shape = new b2.EdgeShape();
-      shape.SetTwoSided(new b2.Vec2(-40.0, 0.0), new b2.Vec2(40.0, 0.0));
-      ground.CreateFixture(shape, 0.0);
-
-      shape.SetTwoSided(new b2.Vec2(20.0, 0.0), new b2.Vec2(20.0, 20.0));
-      ground.CreateFixture(shape, 0.0);
+      this.m_world.CreateBody(bd);
+      new b2.EdgeShape();
     }
 
     const xs = [0.0, -10.0, -5.0, 5.0, 10.0];
@@ -78,20 +54,9 @@ export class Test {
       for (let i = 0; i < 15; ++i) {
         const bd = new b2.BodyDef();
         bd.type = b2.BodyType.b2_dynamicBody;
-
-        const n = Test.e_rowCount + i;
-        // DEBUG: b2.Assert(n < BoxStack.e_rowCount * BoxStack.e_columnCount);
-        this.m_indices[n] = n;
-        bd.userData = this.m_indices[n];
-
         const x = 0.0;
-        //const x = b2.RandomRange(-0.02, 0.02);
-        //const x = i % 2 === 0 ? -0.01 : 0.01;
         bd.position.Set(xs[0] + x, 0.55 + 1.1 * i);
         const body = this.m_world.CreateBody(bd);
-
-        this.m_bodies[n] = body;
-
         body.CreateFixture(fd);
       }
   }
@@ -106,13 +71,9 @@ export class Test {
     this.m_world.SetContinuousPhysics(true);
     this.m_world.SetSubStepping(false);
 
-    this.m_pointCount = 0;
-
     this.m_world.Step(timeStep, settings.m_velocityIterations, settings.m_positionIterations);
 
     this.m_world.DebugDraw();
-
-      ++this.m_stepCount;
   }
 
   public GetDefaultViewZoom(): number {
