@@ -25,8 +25,6 @@ import {g_debugDraw} from "./draw.js";
 import {b2DrawFlags} from "../build/common/b2_draw";
 import {Settings} from "./settings";
 
-export const DRAW_STRING_NEW_LINE: number = 16;
-
 export class Test {
   public static readonly k_maxContactPoints: number = 2048;
 
@@ -39,12 +37,7 @@ export class Test {
   public m_world: b2.World;
   public m_textLine: number = 30;
   public m_pointCount: number = 0;
-  public readonly m_bombSpawnPoint: b2.Vec2 = new b2.Vec2();
-  public m_bombSpawning: boolean = false;
-  public readonly m_mouseWorld: b2.Vec2 = new b2.Vec2();
   public m_stepCount: number = 0;
-  public readonly m_maxProfile: b2.Profile = new b2.Profile();
-  public readonly m_totalProfile: b2.Profile = new b2.Profile();
   public m_groundBody: b2.Body;
 
   constructor() {
@@ -57,8 +50,8 @@ export class Test {
     const bodyDef: b2.BodyDef = new b2.BodyDef();
     this.m_groundBody = this.m_world.CreateBody(bodyDef);
     // BoxStack
-    this.m_bodies = new Array(Test.e_rowCount * Test.e_columnCount);
-    this.m_indices = new Array(Test.e_rowCount * Test.e_columnCount);
+    this.m_bodies = new Array(15);
+    this.m_indices = new Array(15);
 
     {
       const bd = new b2.BodyDef();
@@ -74,7 +67,6 @@ export class Test {
 
     const xs = [0.0, -10.0, -5.0, 5.0, 10.0];
 
-    for (let j = 0; j < Test.e_columnCount; ++j) {
       const shape = new b2.PolygonShape();
       shape.SetAsBox(0.5, 0.5);
 
@@ -83,11 +75,11 @@ export class Test {
       fd.density = 1.0;
       fd.friction = 0.3;
 
-      for (let i = 0; i < Test.e_rowCount; ++i) {
+      for (let i = 0; i < 15; ++i) {
         const bd = new b2.BodyDef();
         bd.type = b2.BodyType.b2_dynamicBody;
 
-        const n = j * Test.e_rowCount + i;
+        const n = Test.e_rowCount + i;
         // DEBUG: b2.Assert(n < BoxStack.e_rowCount * BoxStack.e_columnCount);
         this.m_indices[n] = n;
         bd.userData = this.m_indices[n];
@@ -95,14 +87,13 @@ export class Test {
         const x = 0.0;
         //const x = b2.RandomRange(-0.02, 0.02);
         //const x = i % 2 === 0 ? -0.01 : 0.01;
-        bd.position.Set(xs[j] + x, 0.55 + 1.1 * i);
+        bd.position.Set(xs[0] + x, 0.55 + 1.1 * i);
         const body = this.m_world.CreateBody(bd);
 
         this.m_bodies[n] = body;
 
         body.CreateFixture(fd);
       }
-    }
   }
 
   public Step(settings: Settings): void {

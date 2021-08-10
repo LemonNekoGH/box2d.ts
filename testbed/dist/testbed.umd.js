@@ -229,17 +229,11 @@
   })(b2DrawFlags || (b2DrawFlags = {}));
 
   // MIT License
-  const DRAW_STRING_NEW_LINE = 16;
   class Test {
       constructor() {
           this.m_textLine = 30;
           this.m_pointCount = 0;
-          this.m_bombSpawnPoint = new b2__namespace.Vec2();
-          this.m_bombSpawning = false;
-          this.m_mouseWorld = new b2__namespace.Vec2();
           this.m_stepCount = 0;
-          this.m_maxProfile = new b2__namespace.Profile();
-          this.m_totalProfile = new b2__namespace.Profile();
           const gravity = new b2__namespace.Vec2(0, -10);
           this.m_world = new b2__namespace.World(gravity);
           this.m_textLine = 30;
@@ -247,8 +241,8 @@
           const bodyDef = new b2__namespace.BodyDef();
           this.m_groundBody = this.m_world.CreateBody(bodyDef);
           // BoxStack
-          this.m_bodies = new Array(Test.e_rowCount * Test.e_columnCount);
-          this.m_indices = new Array(Test.e_rowCount * Test.e_columnCount);
+          this.m_bodies = new Array(15);
+          this.m_indices = new Array(15);
           {
               const bd = new b2__namespace.BodyDef();
               const ground = this.m_world.CreateBody(bd);
@@ -259,28 +253,26 @@
               ground.CreateFixture(shape, 0.0);
           }
           const xs = [0.0, -10.0, -5.0, 5.0, 10.0];
-          for (let j = 0; j < Test.e_columnCount; ++j) {
-              const shape = new b2__namespace.PolygonShape();
-              shape.SetAsBox(0.5, 0.5);
-              const fd = new b2__namespace.FixtureDef();
-              fd.shape = shape;
-              fd.density = 1.0;
-              fd.friction = 0.3;
-              for (let i = 0; i < Test.e_rowCount; ++i) {
-                  const bd = new b2__namespace.BodyDef();
-                  bd.type = b2__namespace.BodyType.b2_dynamicBody;
-                  const n = j * Test.e_rowCount + i;
-                  // DEBUG: b2.Assert(n < BoxStack.e_rowCount * BoxStack.e_columnCount);
-                  this.m_indices[n] = n;
-                  bd.userData = this.m_indices[n];
-                  const x = 0.0;
-                  //const x = b2.RandomRange(-0.02, 0.02);
-                  //const x = i % 2 === 0 ? -0.01 : 0.01;
-                  bd.position.Set(xs[j] + x, 0.55 + 1.1 * i);
-                  const body = this.m_world.CreateBody(bd);
-                  this.m_bodies[n] = body;
-                  body.CreateFixture(fd);
-              }
+          const shape = new b2__namespace.PolygonShape();
+          shape.SetAsBox(0.5, 0.5);
+          const fd = new b2__namespace.FixtureDef();
+          fd.shape = shape;
+          fd.density = 1.0;
+          fd.friction = 0.3;
+          for (let i = 0; i < 15; ++i) {
+              const bd = new b2__namespace.BodyDef();
+              bd.type = b2__namespace.BodyType.b2_dynamicBody;
+              const n = Test.e_rowCount + i;
+              // DEBUG: b2.Assert(n < BoxStack.e_rowCount * BoxStack.e_columnCount);
+              this.m_indices[n] = n;
+              bd.userData = this.m_indices[n];
+              const x = 0.0;
+              //const x = b2.RandomRange(-0.02, 0.02);
+              //const x = i % 2 === 0 ? -0.01 : 0.01;
+              bd.position.Set(xs[0] + x, 0.55 + 1.1 * i);
+              const body = this.m_world.CreateBody(bd);
+              this.m_bodies[n] = body;
+              body.CreateFixture(fd);
           }
       }
       Step(settings) {
@@ -445,7 +437,6 @@
   }
 
   exports.Camera = Camera;
-  exports.DRAW_STRING_NEW_LINE = DRAW_STRING_NEW_LINE;
   exports.DebugDraw = DebugDraw;
   exports.Main = Main;
   exports.Test = Test;
