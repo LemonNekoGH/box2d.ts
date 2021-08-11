@@ -23,13 +23,13 @@
 import * as b2 from "@box2d";
 import {g_debugDraw} from "./draw.js";
 import {b2DrawFlags} from "../build/common/b2_draw";
-import {Settings} from "./settings";
+import {Vec2} from "@box2d";
 
 export class Test {
   public m_world: b2.World;
 
   constructor() {
-    this.m_world = new b2.World(new b2.Vec2(0, -10));
+    this.m_world = new b2.World(new b2.Vec2(0, 10));
     this.m_world.SetDebugDraw(g_debugDraw);
 
     const bodyDef: b2.BodyDef = new b2.BodyDef();
@@ -37,8 +37,10 @@ export class Test {
     // BoxStack
     {
       const bd = new b2.BodyDef();
-      this.m_world.CreateBody(bd);
-      new b2.EdgeShape();
+      const ground = this.m_world.CreateBody(bd);
+      const shape = new b2.EdgeShape();
+      shape.SetTwoSided(new Vec2(-20, 20), new Vec2(20, 25))
+      ground.CreateFixture(shape, 0)
     }
 
     const xs = [0.0, -10.0, -5.0, 5.0, 10.0];
@@ -56,14 +58,15 @@ export class Test {
         bd.type = b2.BodyType.b2_dynamicBody;
         const x = 0.0;
         bd.position.Set(xs[0] + x, 0.55 + 1.1 * i);
+
+        console.log(bd.position)
+
         const body = this.m_world.CreateBody(bd);
         body.CreateFixture(fd);
       }
   }
 
-  public Step(settings: Settings): void {
-    let timeStep = settings.m_hertz > 0 ? 1 / settings.m_hertz : 0;
-
+  public Step(): void {
     g_debugDraw.SetFlags(b2DrawFlags.e_shapeBit);
 
     this.m_world.SetAllowSleeping(true);
@@ -71,7 +74,7 @@ export class Test {
     this.m_world.SetContinuousPhysics(true);
     this.m_world.SetSubStepping(false);
 
-    this.m_world.Step(timeStep, settings.m_velocityIterations, settings.m_positionIterations);
+    this.m_world.Step(1 / 60, 8, 3);
 
     this.m_world.DebugDraw();
   }

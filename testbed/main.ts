@@ -20,13 +20,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import { Settings } from "./settings.js";
 import { Test } from "./test.js";
 import { g_debugDraw, g_camera } from "./draw.js";
+import * as GCBox2D from '@box2d'
 
 export class Main {
   public m_time_last: number = 0;
-  public readonly m_settings: Settings = new Settings();
   public m_test?: Test;
   public m_shift: boolean = false;
   public m_demo_time: number = 0;
@@ -38,12 +37,11 @@ export class Main {
     document.body.style.backgroundColor = "rgba(51, 51, 51, 1.0)";
 
     const main_div: HTMLDivElement = document.body.appendChild(document.createElement("div"));
-    main_div.style.position = "absolute"; // relative to document.body
+    main_div.style.position = "absolute";
     main_div.style.left = "0px";
     main_div.style.top = "0px";
 
     function resize_main_div(): void {
-      // console.log(window.innerWidth + "x" + window.innerHeight);
       main_div.style.width = window.innerWidth + "px";
       main_div.style.height = window.innerHeight + "px";
     }
@@ -59,6 +57,30 @@ export class Main {
     canvas_div.style.right = "0px";
     canvas_div.style.top = "0px";
     canvas_div.style.bottom = "0px";
+
+    canvas_div.addEventListener('click', (event) => {
+      const bodyDef = new GCBox2D.BodyDef()
+      bodyDef.linearDamping = 1
+      bodyDef.angularDamping = 1
+      bodyDef.type = GCBox2D.BodyType.b2_dynamicBody
+      bodyDef.position.Set(event.x, event.y)
+
+      let shape = new GCBox2D.PolygonShape()
+      shape = shape.SetAsBox(10, 10)
+
+      const def = new GCBox2D.FixtureDef()
+      def.density = 1
+      def.friction = 0.3
+      def.restitution = 0
+      def.shape = shape
+
+      console.log(event.x, event.y)
+
+      const body = this.m_test?.m_world.CreateBody(bodyDef)
+      if (body) {
+        body.CreateFixture(def)
+      }
+    })
 
     const canvas_2d: HTMLCanvasElement = this.m_canvas_2d = canvas_div.appendChild(document.createElement("canvas"));
 
@@ -83,27 +105,15 @@ export class Main {
     // disable context menu to use right-click
     window.addEventListener("contextmenu", (e: MouseEvent): void => { e.preventDefault(); }, true);
 
-    this.LoadTest();
+    this.m_test = new Test();
+    this.HomeCamera();
 
     this.m_time_last = time;
   }
 
   public HomeCamera(): void {
     g_camera.m_zoom = (this.m_test) ? (this.m_test.GetDefaultViewZoom()) : (1.0);
-    g_camera.m_center.Set(0, 20 * g_camera.m_zoom);
-  }
-
-  public UpdateTest(time_elapsed: number): void {
-      this.m_demo_time += time_elapsed;
-  }
-
-  public LoadTest(restartTest: boolean = false): void {
-    this.m_demo_time = 0;
-    // #endif
-    this.m_test = new Test();
-    if (!restartTest) {
-      this.HomeCamera();
-    }
+    g_camera.m_center.Set(0, 0);
   }
 
   public SimulationLoop(time: number): void {
@@ -113,25 +123,20 @@ export class Main {
     if (time_elapsed > 1000) { time_elapsed = 1000; }
     if (time_elapsed > 0) {
       const ctx: CanvasRenderingContext2D | null = this.m_ctx;
-      const restartTest = [false];
       if (ctx) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx.save();
-        ctx.translate(0.5 * ctx.canvas.width, 0.5 * ctx.canvas.height);
-        ctx.scale(1, -1);
+        ctx.translate(0.5 * ctx.canvas.width, 0.5 * ctx.canvas.height);;
         const s: number = 0.5 * g_camera.m_height / g_camera.m_extent;
         ctx.scale(s, s);
         ctx.lineWidth /= s;
-        ctx.scale(1 / g_camera.m_zoom, 1 / g_camera.m_zoom);
-        ctx.lineWidth *= g_camera.m_zoom;
+        ctx.scale(1, 1);
         ctx.translate(-g_camera.m_center.x, -g_camera.m_center.y);
-        if (this.m_test) { this.m_test.Step(this.m_settings); }
+        if (this.m_test) {
+          this.m_test.Step();
+        }
         ctx.restore();
       }
-      if (restartTest[0]) {
-        this.LoadTest(true);
-      }
-      this.UpdateTest(time_elapsed);
     }
   }
 }

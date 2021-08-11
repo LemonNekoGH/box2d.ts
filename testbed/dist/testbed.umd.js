@@ -231,15 +231,17 @@
   // MIT License
   class Test {
       constructor() {
-          this.m_world = new b2__namespace.World(new b2__namespace.Vec2(0, -10));
+          this.m_world = new b2__namespace.World(new b2__namespace.Vec2(0, 10));
           this.m_world.SetDebugDraw(g_debugDraw);
           const bodyDef = new b2__namespace.BodyDef();
           this.m_world.CreateBody(bodyDef);
           // BoxStack
           {
               const bd = new b2__namespace.BodyDef();
-              this.m_world.CreateBody(bd);
-              new b2__namespace.EdgeShape();
+              const ground = this.m_world.CreateBody(bd);
+              const shape = new b2__namespace.EdgeShape();
+              shape.SetTwoSided(new b2.Vec2(-20, 20), new b2.Vec2(20, 25));
+              ground.CreateFixture(shape, 0);
           }
           const xs = [0.0, -10.0, -5.0, 5.0, 10.0];
           const shape = new b2__namespace.PolygonShape();
@@ -253,18 +255,18 @@
               bd.type = b2__namespace.BodyType.b2_dynamicBody;
               const x = 0.0;
               bd.position.Set(xs[0] + x, 0.55 + 1.1 * i);
+              console.log(bd.position);
               const body = this.m_world.CreateBody(bd);
               body.CreateFixture(fd);
           }
       }
-      Step(settings) {
-          let timeStep = settings.m_hertz > 0 ? 1 / settings.m_hertz : 0;
+      Step() {
           g_debugDraw.SetFlags(b2DrawFlags.e_shapeBit);
           this.m_world.SetAllowSleeping(true);
           this.m_world.SetWarmStarting(true);
           this.m_world.SetContinuousPhysics(true);
           this.m_world.SetSubStepping(false);
-          this.m_world.Step(timeStep, settings.m_velocityIterations, settings.m_positionIterations);
+          this.m_world.Step(1 / 60, 8, 3);
           this.m_world.DebugDraw();
       }
       GetDefaultViewZoom() {
@@ -273,66 +275,18 @@
   }
 
   // MIT License
-  class Settings {
-      constructor() {
-          this.m_testIndex = 0;
-          this.m_windowWidth = 1600;
-          this.m_windowHeight = 900;
-          this.m_hertz = 60;
-          this.m_velocityIterations = 8;
-          this.m_positionIterations = 3;
-          // #if B2_ENABLE_PARTICLE
-          // Particle iterations are needed for numerical stability in particle
-          // simulations with small particles and relatively high gravity.
-          // b2CalculateParticleIterations helps to determine the number.
-          this.m_particleIterations = b2__namespace.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
-          // #endif
-          this.m_drawShapes = true;
-          this.m_pause = false;
-          this.m_singleStep = false;
-          // #if B2_ENABLE_PARTICLE
-          this.m_strictContacts = false;
-      }
-      // #endif
-      Reset() {
-          this.m_testIndex = 0;
-          this.m_windowWidth = 1600;
-          this.m_windowHeight = 900;
-          this.m_hertz = 60;
-          this.m_velocityIterations = 8;
-          this.m_positionIterations = 3;
-          // #if B2_ENABLE_PARTICLE
-          // Particle iterations are needed for numerical stability in particle
-          // simulations with small particles and relatively high gravity.
-          // b2CalculateParticleIterations helps to determine the number.
-          this.m_particleIterations = b2__namespace.CalculateParticleIterations(10, 0.04, 1 / this.m_hertz);
-          // #endif
-          this.m_drawShapes = true;
-          this.m_pause = false;
-          this.m_singleStep = false;
-          // #if B2_ENABLE_PARTICLE
-          this.m_strictContacts = false;
-          // #endif
-      }
-      Save() { }
-      Load() { }
-  }
-
-  // MIT License
   class Main {
       constructor(time) {
           this.m_time_last = 0;
-          this.m_settings = new Settings();
           this.m_shift = false;
           this.m_demo_time = 0;
           this.m_ctx = null;
           document.body.style.backgroundColor = "rgba(51, 51, 51, 1.0)";
           const main_div = document.body.appendChild(document.createElement("div"));
-          main_div.style.position = "absolute"; // relative to document.body
+          main_div.style.position = "absolute";
           main_div.style.left = "0px";
           main_div.style.top = "0px";
           function resize_main_div() {
-              // console.log(window.innerWidth + "x" + window.innerHeight);
               main_div.style.width = window.innerWidth + "px";
               main_div.style.height = window.innerHeight + "px";
           }
@@ -346,6 +300,26 @@
           canvas_div.style.right = "0px";
           canvas_div.style.top = "0px";
           canvas_div.style.bottom = "0px";
+          canvas_div.addEventListener('click', (event) => {
+              var _a;
+              const bodyDef = new b2__namespace.BodyDef();
+              bodyDef.linearDamping = 1;
+              bodyDef.angularDamping = 1;
+              bodyDef.type = b2__namespace.BodyType.b2_dynamicBody;
+              bodyDef.position.Set(event.x, event.y);
+              let shape = new b2__namespace.PolygonShape();
+              shape = shape.SetAsBox(10, 10);
+              const def = new b2__namespace.FixtureDef();
+              def.density = 1;
+              def.friction = 0.3;
+              def.restitution = 0;
+              def.shape = shape;
+              console.log(event.x, event.y);
+              const body = (_a = this.m_test) === null || _a === void 0 ? void 0 : _a.m_world.CreateBody(bodyDef);
+              if (body) {
+                  body.CreateFixture(def);
+              }
+          });
           const canvas_2d = this.m_canvas_2d = canvas_div.appendChild(document.createElement("canvas"));
           function resize_canvas() {
               ///console.log(canvas_div.clientWidth + "x" + canvas_div.clientHeight);
@@ -365,23 +339,13 @@
           // simulation buttons
           // disable context menu to use right-click
           window.addEventListener("contextmenu", (e) => { e.preventDefault(); }, true);
-          this.LoadTest();
+          this.m_test = new Test();
+          this.HomeCamera();
           this.m_time_last = time;
       }
       HomeCamera() {
           g_camera.m_zoom = (this.m_test) ? (this.m_test.GetDefaultViewZoom()) : (1.0);
-          g_camera.m_center.Set(0, 20 * g_camera.m_zoom);
-      }
-      UpdateTest(time_elapsed) {
-          this.m_demo_time += time_elapsed;
-      }
-      LoadTest(restartTest = false) {
-          this.m_demo_time = 0;
-          // #endif
-          this.m_test = new Test();
-          if (!restartTest) {
-              this.HomeCamera();
-          }
+          g_camera.m_center.Set(0, 0);
       }
       SimulationLoop(time) {
           this.m_time_last = this.m_time_last || time;
@@ -396,19 +360,16 @@
                   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
                   ctx.save();
                   ctx.translate(0.5 * ctx.canvas.width, 0.5 * ctx.canvas.height);
-                  ctx.scale(1, -1);
                   const s = 0.5 * g_camera.m_height / g_camera.m_extent;
                   ctx.scale(s, s);
                   ctx.lineWidth /= s;
-                  ctx.scale(1 / g_camera.m_zoom, 1 / g_camera.m_zoom);
-                  ctx.lineWidth *= g_camera.m_zoom;
+                  ctx.scale(1, 1);
                   ctx.translate(-g_camera.m_center.x, -g_camera.m_center.y);
                   if (this.m_test) {
-                      this.m_test.Step(this.m_settings);
+                      this.m_test.Step();
                   }
                   ctx.restore();
               }
-              this.UpdateTest(time_elapsed);
           }
       }
   }
